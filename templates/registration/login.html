@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}Вход{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-5">
+    <div class="col-md-6 col-lg-4 p-5 rounded-4 shadow-lg border-0 bg-light">
+        <!-- Добавляем скрытое поле для редиректа -->
+        <form method="POST" class="needs-validation" novalidate>
+            {% csrf_token %}
+            
+            <!-- Скрытое поле next для редиректа на main -->
+            <input type="hidden" name="next" value="{% url 'main' %}">
+            
+            <!-- Остальная форма без изменений -->
+            <div class="text-center mb-4">
+                <i class="bi bi-box-arrow-in-right text-primary fs-1"></i>
+            </div>
+            
+            <h2 class="mb-4 text-center fw-bold text-primary">Вход в аккаунт</h2>
+            
+            {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <!-- Поле имени пользователя -->
+            <div class="mb-4">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-person me-2"></i>Имя пользователя
+                </label>
+                <input type="text" 
+                       name="username" 
+                       class="form-control form-control-lg border-primary border-2" 
+                       required
+                       placeholder="Введите имя пользователя">
+            </div>
+            
+            <!-- Поле пароля -->
+            <div class="mb-4">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-key me-2"></i>Пароль
+                </label>
+                <input type="password" 
+                       name="password" 
+                       class="form-control form-control-lg border-primary border-2" 
+                       required
+                       placeholder="Введите пароль">
+            </div>
+            
+            <!-- Запомнить меня -->
+            <div class="mb-4 form-check">
+                <input type="checkbox" class="form-check-input" id="remember_me" name="remember_me">
+                <label class="form-check-label" for="remember_me">
+                    Запомнить меня
+                </label>
+            </div>
+            
+            <!-- Кнопка входа -->
+            <button type="submit" class="btn btn-primary btn-lg w-100 py-3 mt-3 shadow-sm">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Войти
+            </button>
+            
+            <!-- Ссылки -->
+            <div class="text-center mt-4 pt-3 border-top">
+                <small class="text-muted d-block mb-2">
+                    Нет аккаунта? 
+                    <a href="{% url 'register' %}" class="text-decoration-none fw-semibold text-primary">
+                        Зарегистрироваться
+                    </a>
+                </small>
+                <small class="text-muted">
+                    <a href="#" class="text-decoration-none">
+                        Забыли пароль?
+                    </a>
+                </small>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- VK ID SDK -->
+<div>
+  <script nonce="csp_nonce" src="https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js"></script>
+  <script nonce="csp_nonce" type="text/javascript">
+    if ('VKIDSDK' in window) {
+      const VKID = window.VKIDSDK;
+
+      VKID.Config.init({
+        app: 54416085,
+        redirectUrl: 'https://ваш-домен.ру/accounts/vk/login/callback/?next={% url "main" %}',  // Добавляем next параметр
+        responseMode: VKID.ConfigResponseMode.Callback,
+        source: VKID.ConfigSource.LOWCODE,
+        scope: 'email',
+      });
+
+      const oneTap = new VKID.OneTap();
+
+      oneTap.render({
+        container: document.currentScript.parentElement,
+        showAlternativeLogin: true
+      })
+      .on(VKID.WidgetEvents.ERROR, vkidOnError)
+      .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, function (payload) {
+        const code = payload.code;
+        const deviceId = payload.device_id;
+
+        VKID.Auth.exchangeCode(code, deviceId)
+          .then(function(data) {
+            // После успешного входа через VK
+            vkidOnSuccess(data);
+          })
+          .catch(vkidOnError);
+      });
+    
+      function vkidOnSuccess(data) {
+        // После успешной авторизации VK
+        console.log('VK ID Success:', data);
+        
+        // Отправляем данные на сервер
+        fetch('/vk/auth/callback/?next={% url "main" %}', {  // Добавляем next
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify({
+            access_token: data.access_token,
+            user_id: data.user_id,
+            email: data.email
+          })
+        })
+        .then(response => {
+          if (response.ok) {
+            // Редирект на main страницу
+            window.location.href = '{% url "main" %}';
+          } else {
+            throw new Error('Ошибка сервера');
+          }
+        })
+        .catch(vkidOnError);
+      }
+    
+      function vkidOnError(error) {
+        console.error('VK ID Error:', error);
+        alert('Ошибка входа через VK: ' + (error.error_description || error.message));
+      }
+      
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+    }
+  </script>
+</div>
+
+<!-- Стили -->
+<style>
+    .form-control:focus {
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        border-color: #86b7fe;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        border: none;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+    }
+    
+    .bg-light {
+        background-color: #f8f9fa !important;
+    }
+    
+    .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+</style>
+{% endblock %}

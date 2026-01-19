@@ -1,0 +1,98 @@
+<!-- Замени содержимое модального окна на это -->
+<div class="modal fade" id="addParticipantModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-person-plus me-2"></i>Добавить участника
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                
+                <!-- Вкладки -->
+                <ul class="nav nav-tabs mb-3" id="participantTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="friends-tab" data-bs-toggle="tab" 
+                                data-bs-target="#friends" type="button">
+                            <i class="bi bi-people me-1"></i>Мои друзья
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="search-tab" data-bs-toggle="tab" 
+                                data-bs-target="#search" type="button">
+                            <i class="bi bi-search me-1"></i>Найти пользователя
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="email-tab" data-bs-toggle="tab" 
+                                data-bs-target="#email" type="button">
+                            <i class="bi bi-envelope me-1"></i>По email
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="participantTabsContent">
+                    
+                    <!-- Вкладка 1: Друзья -->
+                    <div class="tab-pane fade show active" id="friends" role="tabpanel">
+                        <div id="friendsList">
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Загрузка...</span>
+                                </div>
+                                <p class="mt-2">Загружаем список друзей...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Вкладка 2: Поиск -->
+                    <div class="tab-pane fade" id="search" role="tabpanel">
+                        <div class="mb-3">
+                            <label class="form-label">Введите имя пользователя</label>
+                            <div class="input-group">
+                                <input type="text" id="searchUsername" class="form-control" 
+                                       placeholder="username">
+                                <button class="btn btn-primary" id="searchUserBtn">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="searchResults">
+                            <div class="text-center py-4 text-muted">
+                                <i class="bi bi-search display-6"></i>
+                                <p class="mt-2">Введите имя для поиска</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Вкладка 3: Email -->
+                    <div class="tab-pane fade" id="email" role="tabpanel">
+                        <div class="mb-3">
+                            <label class="form-label">Email пользователя</label>
+                            <input type="email" id="participantEmail" class="form-control" 
+                                   placeholder="example@email.com">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Роль в мероприятии (опционально)</label>
+                            <input type="text" id="participantRoleEmail" class="form-control" 
+                                   placeholder="Например: Водитель, Организатор">
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="sendNotificationEmail">
+                            <label class="form-check-label" for="sendNotificationEmail">
+                                Отправить уведомление на email
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="sendInvitationBtn">
+                    <i class="bi bi-send me-1"></i> Отправить приглашение
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

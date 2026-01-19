@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}Профиль пользователя{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Левый сайдбар (тот же что в main) -->
+        <div class="col-lg-2 col-md-3 sidebar bg-light border-end">
+            <div class="profile-section p-3 border-bottom">
+                <div class="d-flex align-items-center">
+                    <div class="avatar me-3">
+                        <i class="bi bi-person-circle fs-2 text-primary"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold">{{ user.username }}</h6>
+                        <small class="text-muted">{{ user.email|default:"Email не указан" }}</small>
+                    </div>
+                </div>
+                <a href="{% url 'profile' %}" class="btn btn-sm btn-outline-primary w-100 mt-3">
+                    <i class="bi bi-gear me-1"></i> Профиль
+                </a>
+            </div>
+            
+            <nav class="nav flex-column p-3">
+    <a class="nav-link" href="{% url 'main' %}">
+        <i class="bi bi-house me-2"></i> Главная
+    </a>
+    <a class="nav-link active" href="{% url 'my_events' %}">
+        <i class="bi bi-calendar-event me-2"></i> Мои мероприятия
+    </a>
+    <a class="nav-link" href="{% url 'create_event' %}">
+        <i class="bi bi-plus-circle me-2"></i> Создать мероприятие
+    </a>
+    <a class="nav-link" href="{% url 'calendar' %}">
+        <i class="bi bi-calendar-week me-2"></i> Календарь
+    </a>
+    <a class="nav-link" href="{% url 'friends' %}">
+        <i class="bi bi-people me-2"></i> Друзья
+    </a>
+    <a class="nav-link" href="{% url 'map' %}">
+        <i class="bi bi-map me-2"></i> Карта
+    </a>
+    <a class="nav-link" href="{% url 'settings' %}">
+        <i class="bi bi-sliders me-2"></i> Настройки
+    </a>
+</nav>
+        </div>
+        
+        <!-- Основной контент -->
+        <div class="col-lg-10 col-md-9 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 fw-bold mb-0">
+                    <i class="bi bi-person-circle me-2"></i>Профиль пользователя
+                </h1>
+                <button type="button" class="btn btn-outline-secondary" id="notificationsBtn">
+                    <i class="bi bi-bell"></i>
+                    <span class="badge bg-danger rounded-pill">3</span>
+                </button>
+            </div>
+            
+            <!-- Информация профиля -->
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                <i class="bi bi-person-circle text-primary" style="font-size: 4rem;"></i>
+                            </div>
+                            <h4 class="fw-bold">{{ user.username }}</h4>
+                            <p class="text-muted">{{ user.email|default:"Email не указан" }}</p>
+                            <button class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-camera me-1"></i> Сменить фото
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-8">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0 fw-bold">Личная информация</h5>
+                        </div>
+                        <div class="card-body">
+                            <form>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Имя</label>
+                                        <input type="text" class="form-control" value="{{ user.first_name|default:'' }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Фамилия</label>
+                                        <input type="text" class="form-control" value="{{ user.last_name|default:'' }}">
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" value="{{ user.email|default:'' }}">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">О себе</label>
+                                    <textarea class="form-control" rows="3" placeholder="Расскажите о себе..."></textarea>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    {% block extra_css %}
+<style>
+/* Стили для активной ссылки в сайдбаре */
+.nav-link.active {
+    background-color: #e7f1ff;
+    border-left: 3px solid #0d6efd;
+    color: #0d6efd !important;
+    font-weight: 500;
+}
+
+.nav-link {
+    color: #495057;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 0.25rem;
+    transition: all 0.2s;
+}
+
+.nav-link:hover {
+    background-color: #f8f9fa;
+    color: #0d6efd;
+}
+
+/* Аватарки */
+.avatar {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: bold;
+}
+
+/* Для высоты сайдбара */
+.min-vh-100 {
+    min-height: 100vh;
+}
+</style>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,61 @@
+<!-- Карточка мероприятия -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-0">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="h3 fw-bold mb-0">{{ event.title }}</h1>
+            <div>
+                <span class="badge bg-primary me-2">{{ event.get_event_type_display }}</span>
+                <button class="btn btn-sm btn-outline-danger" id="deleteEventBtn">
+                    <i class="bi bi-trash"></i> Удалить
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card-body">
+        <!-- Дата и время -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h5><i class="bi bi-calendar-event text-primary me-2"></i>Дата и время</h5>
+                <p class="fs-5">
+                    <strong>Начало:</strong> {{ event.start_datetime|date:"d.m.Y H:i" }}<br>
+                    {% if event.end_datetime %}
+                    <strong>Окончание:</strong> {{ event.end_datetime|date:"d.m.Y H:i" }}
+                    {% endif %}
+                </p>
+            </div>
+            
+            <div class="col-md-6">
+                <h5><i class="bi bi-geo-alt text-primary me-2"></i>Место проведения</h5>
+                <p class="fs-5">{{ event.get_location_display }}</p>
+                {% if event.location_type == 'online' and event.online_link %}
+                <a href="{{ event.online_link }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-link-45deg me-1"></i> Перейти к встрече
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Описание -->
+        <div class="mb-4">
+            <h5><i class="bi bi-text-paragraph text-primary me-2"></i>Описание</h5>
+            <div class="p-3 bg-light rounded">
+                {{ event.description|default:"Описание отсутствует"|linebreaks }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Карта (если есть координаты) -->
+{% if map_data %}
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0 fw-bold">
+            <i class="bi bi-map me-2"></i>Место на карте
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div id="eventMap" style="width: 100%; height: 300px;"></div>
+    </div>
+</div>
+{% endif %}

@@ -1,0 +1,101 @@
+<!-- Модальное окно уведомлений -->
+<div class="modal fade" id="notificationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-bell me-2"></i>Уведомления
+                    <span class="badge bg-danger ms-2" id="notificationCount">0</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Вкладки уведомлений -->
+                <ul class="nav nav-tabs mb-3" id="notificationTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="all-tab" data-bs-toggle="tab" 
+                                data-bs-target="#all-notifications" type="button" role="tab">
+                            Все
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="unread-tab" data-bs-toggle="tab" 
+                                data-bs-target="#unread-notifications" type="button" role="tab">
+                            Непрочитанные
+                            <span class="badge bg-danger ms-1" id="unreadCount">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="expenses-tab" data-bs-toggle="tab" 
+                                data-bs-target="#expense-notifications" type="button" role="tab">
+                            Деньги
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tasks-tab" data-bs-toggle="tab" 
+                                data-bs-target="#task-notifications" type="button" role="tab">
+                            Задачи
+                        </button>
+                    </li>
+                </ul>
+                
+                <!-- Содержимое вкладок -->
+                <div class="tab-content" id="notificationTabsContent">
+                    
+                    <!-- Все уведомления -->
+                    <div class="tab-pane fade show active" id="all-notifications" role="tabpanel">
+                        <div id="allNotificationsList">
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-bell fs-1"></i>
+                                <p class="mb-0 mt-2">Уведомлений пока нет</p>
+                                <small>Здесь будут появляться уведомления о событиях</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Непрочитанные -->
+                    <div class="tab-pane fade" id="unread-notifications" role="tabpanel">
+                        <div id="unreadNotificationsList">
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-check2-all fs-1"></i>
+                                <p class="mb-0 mt-2">Нет непрочитанных уведомлений</p>
+                                <small>Все уведомления прочитаны</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Уведомления о деньгах -->
+                    <div class="tab-pane fade" id="expense-notifications" role="tabpanel">
+                        <div id="expenseNotificationsList">
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-cash-coin fs-1"></i>
+                                <p class="mb-0 mt-2">Нет уведомлений о деньгах</p>
+                                <small>Здесь будут уведомления о тратах и расчетах</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Уведомления о задачах -->
+                    <div class="tab-pane fade" id="task-notifications" role="tabpanel">
+                        <div id="taskNotificationsList">
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-card-checklist fs-1"></i>
+                                <p class="mb-0 mt-2">Нет уведомлений о задачах</p>
+                                <small>Здесь будут уведомления о задачах</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" id="markAllReadBtn">
+                    <i class="bi bi-check-all me-1"></i> Отметить все как прочитанные
+                </button>
+                <button type="button" class="btn btn-outline-danger" id="clearNotificationsBtn">
+                    <i class="bi bi-trash me-1"></i> Очистить все
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

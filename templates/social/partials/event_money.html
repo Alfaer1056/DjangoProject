@@ -1,0 +1,112 @@
+<div class="row">
+    <!-- Левая колонка: Общий бюджет и статистика -->
+    <div class="col-lg-4 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0 fw-bold">
+                    <i class="bi bi-piggy-bank me-2"></i>Бюджет
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <h1 class="display-6 fw-bold text-primary" id="totalBudget">0</h1>
+                    <p class="text-muted">Общий бюджет поездки</p>
+                    <button class="btn btn-sm btn-outline-primary" id="setBudgetBtn">
+                        <i class="bi bi-pencil me-1"></i> Установить бюджет
+                    </button>
+                </div>
+
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item border-0 d-flex justify-content-between">
+                        <span>Всего потрачено:</span>
+                        <strong class="text-danger" id="totalSpent">0 руб.</strong>
+                    </div>
+                    <div class="list-group-item border-0 d-flex justify-content-between">
+                        <span>Остаток:</span>
+                        <strong class="text-success" id="remainingBudget">0 руб.</strong>
+                    </div>
+                    <div class="list-group-item border-0 d-flex justify-content-between">
+                        <span>Кол-во трат:</span>
+                        <strong id="expensesCountBadge">0</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Мои долги -->
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0 fw-bold">
+            <i class="bi bi-person-badge me-2"></i>Мои долги
+        </h5>
+    </div>
+    <div class="card-body">
+        <div id="myDebtsList">
+            <div class="text-center text-muted py-3">
+                <i class="bi bi-check-circle fs-1"></i>
+                <p class="mb-0">Долгов нет</p>
+                <small class="text-muted">Все расчеты сведены</small>
+            </div>
+        </div>
+    </div>
+</div>
+    </div>
+    
+    
+
+    <!-- Правая колонка: Список расходов -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">
+                    <i class="bi bi-receipt me-2"></i>Траты
+                </h5>
+                <button class="btn btn-primary btn-sm" id="addExpenseBtn">
+                    <i class="bi bi-plus-lg me-1"></i> Добавить трату
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Что</th>
+                                <th>Сумма</th>
+                                <th>Кто оплатил</th>
+                                <th>Доли</th>
+                                <th>Дата</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expensesTableBody">
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="bi bi-receipt fs-1"></i>
+                                    <p class="mb-0 mt-2">Трат пока нет</p>
+                                    <small>Добавьте первую трату</small>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Сводка по долгам -->
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0 fw-bold">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Долги
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="debtsList">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Все расчеты сведены, долгов нет
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

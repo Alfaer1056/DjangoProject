@@ -1,0 +1,639 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Календарь{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Левый сайдбар -->
+        <div class="col-lg-2 col-md-3 sidebar bg-light border-end">
+            <div class="profile-section p-3 border-bottom">
+                <div class="d-flex align-items-center">
+                    <div class="avatar me-3">
+                        <i class="bi bi-person-circle fs-2 text-primary"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold">{{ user.username }}</h6>
+                        <small class="text-muted">{{ user.email|default:"Email не указан" }}</small>
+                    </div>
+                </div>
+                <a href="{% url 'profile' %}" class="btn btn-sm btn-outline-primary w-100 mt-3">
+                    <i class="bi bi-gear me-1"></i> Профиль
+                </a>
+            </div>
+            
+            <nav class="nav flex-column p-3">
+                <a class="nav-link" href="{% url 'main' %}">
+                    <i class="bi bi-house me-2"></i> Главная
+                </a>
+                <a class="nav-link" href="{% url 'my_events' %}">
+                    <i class="bi bi-calendar-event me-2"></i> Мои мероприятия
+                </a>
+                <a class="nav-link" href="{% url 'create_event' %}">
+                    <i class="bi bi-plus-circle me-2"></i> Создать мероприятие
+                </a>
+                <a class="nav-link active" href="{% url 'calendar' %}">
+                    <i class="bi bi-calendar-week me-2"></i> Календарь
+                </a>
+                <a class="nav-link" href="{% url 'friends' %}">
+                    <i class="bi bi-people me-2"></i> Друзья
+                </a>
+                <a class="nav-link" href="{% url 'map' %}">
+                    <i class="bi bi-map me-2"></i> Карта
+                </a>
+                <a class="nav-link" href="{% url 'settings' %}">
+                    <i class="bi bi-sliders me-2"></i> Настройки
+                </a>
+            </nav>
+        </div>
+        
+        <!-- Основной контент -->
+        <div class="col-lg-10 col-md-9 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 fw-bold mb-0">
+                    <i class="bi bi-calendar-week me-2"></i>Календарь мероприятий
+                </h1>
+                <div>
+                    <button type="button" class="btn btn-outline-secondary me-2" id="notificationsBtn">
+                        <i class="bi bi-bell"></i>
+                        <span class="badge bg-danger rounded-pill" id="notificationsCount">0</span>
+                    </button>
+                    <a href="{% url 'create_event' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-lg me-1"></i> Добавить событие
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Навигация по календарю -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <button class="btn btn-outline-secondary me-2" id="prevMonth">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <span class="fw-bold fs-5" id="currentMonth">Декабрь 2024</span>
+                            <button class="btn btn-outline-secondary ms-2" id="nextMonth">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary ms-3" id="todayBtn">
+                                <i class="bi bi-calendar-check me-1"></i> Сегодня
+                            </button>
+                        </div>
+                        <div>
+                            <button class="btn btn-outline-primary me-2" id="dayView">День</button>
+                            <button class="btn btn-outline-primary me-2" id="weekView">Неделя</button>
+                            <button class="btn btn-primary" id="monthView">Месяц</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Календарь -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-3">
+                    <div id="calendar"></div>
+                </div>
+            </div>
+            
+            <!-- Список событий на сегодня -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-calendar-check me-2"></i>События на сегодня
+                        <span class="badge bg-primary ms-2" id="todayEventsCount">0</span>
+                    </h5>
+                </div>
+                <div class="card-body" id="todayEventsList">
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-calendar-x fs-1 mb-3"></i>
+                        <p class="mb-0">На сегодня мероприятий нет</p>
+                        <small>Создайте новое мероприятие или проверьте другие дни</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для просмотра события -->
+<div class="modal fade" id="eventModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-calendar-event me-2"></i><span id="modalEventTitle"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong><i class="bi bi-clock me-2"></i>Время:</strong>
+                    <div id="modalEventTime"></div>
+                </div>
+                <div class="mb-3">
+                    <strong><i class="bi bi-geo-alt me-2"></i>Место:</strong>
+                    <div id="modalEventLocation"></div>
+                </div>
+                <div class="mb-3">
+                    <strong><i class="bi bi-text-paragraph me-2"></i>Описание:</strong>
+                    <div id="modalEventDescription" class="mt-1"></div>
+                </div>
+                <div class="mb-3">
+                    <strong><i class="bi bi-tag me-2"></i>Тип:</strong>
+                    <span class="badge" id="modalEventType"></span>
+                </div>
+                <div class="mb-3">
+                    <strong><i class="bi bi-person me-2"></i>Создатель:</strong>
+                    <div id="modalEventCreator"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <a href="#" class="btn btn-primary" id="modalEventDetailLink">
+                    <i class="bi bi-arrow-right-circle me-1"></i>Подробнее
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/ru.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let calendar;
+    let currentDate = new Date();
+    
+    // Инициализация календаря
+    function initCalendar() {
+        const calendarEl = document.getElementById('calendar');
+        
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'ru',
+            firstDay: 1, // Понедельник
+            headerToolbar: false, // Скрываем стандартный тулбар
+            height: 'auto',
+            contentHeight: 'auto',
+            events: function(fetchInfo, successCallback, failureCallback) {
+                // Загружаем события с сервера
+                fetch('/trips/api/events/my/')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            const events = data.events.map(event => {
+                                // Парсим дату из формата "DD.MM.YYYY HH:mm"
+                                let startDate;
+                                if (event.date && event.time) {
+                                    const [day, month, year] = event.date.split('.');
+                                    const [hours, minutes] = event.time.split(':');
+                                    startDate = new Date(year, month - 1, day, hours, minutes);
+                                } else {
+                                    startDate = new Date();
+                                }
+                                
+                                // Определяем цвет по типу события
+                                let color;
+                                switch(event.type) {
+                                    case 'Встреча': color = '#0d6efd'; break;
+                                    case 'Вечеринка': color = '#dc3545'; break;
+                                    case 'Конференция': color = '#198754'; break;
+                                    case 'Тренинг': color = '#ffc107'; break;
+                                    default: color = '#6c757d';
+                                }
+                                
+                                return {
+                                    id: event.id,
+                                    title: event.title,
+                                    start: startDate,
+                                    description: event.description,
+                                    location: event.address,
+                                    type: event.type,
+                                    creator: event.creator || '{{ user.username }}',
+                                    color: color,
+                                    textColor: '#ffffff',
+                                    borderColor: color
+                                };
+                            });
+                            
+                            successCallback(events);
+                            updateTodayEvents();
+                        } else {
+                            failureCallback(data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Ошибка загрузки событий:', error);
+                        failureCallback(error);
+                    });
+            },
+            eventClick: function(info) {
+                // При клике на событие показываем модальное окно
+                showEventModal(info.event);
+            },
+            eventDidMount: function(info) {
+                // Добавляем всплывающую подсказку
+                if (info.event.extendedProps.description) {
+                    info.el.title = info.event.extendedProps.description;
+                }
+            },
+            datesSet: function(dateInfo) {
+                // Обновляем заголовок текущего месяца
+                updateCalendarTitle(dateInfo.view.currentStart);
+            }
+        });
+        
+        calendar.render();
+        updateCalendarTitle(currentDate);
+    }
+    
+    // Обновление заголовка календаря
+    function updateCalendarTitle(date) {
+        const months = [
+            'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+            'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+        ];
+        const month = months[date.getMonth()];
+        const year = date.getFullYear();
+        document.getElementById('currentMonth').textContent = `${month} ${year}`;
+    }
+    
+    // Показать модальное окно события
+    function showEventModal(event) {
+        const eventData = event.extendedProps;
+        
+        document.getElementById('modalEventTitle').textContent = event.title;
+        document.getElementById('modalEventTime').textContent = 
+            `${event.start.toLocaleDateString('ru-RU')}, ${event.start.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}`;
+        document.getElementById('modalEventLocation').textContent = eventData.location || 'Не указано';
+        document.getElementById('modalEventDescription').textContent = eventData.description || 'Описание отсутствует';
+        document.getElementById('modalEventType').textContent = eventData.type || 'Встреча';
+        document.getElementById('modalEventType').className = 'badge bg-primary';
+        document.getElementById('modalEventCreator').textContent = eventData.creator;
+        document.getElementById('modalEventDetailLink').href = `/events/${event.id}/`;
+        
+        const eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+        eventModal.show();
+    }
+    
+    // Обновление событий на сегодня
+    function updateTodayEvents() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const events = calendar.getEvents();
+        const todayEvents = events.filter(event => {
+            const eventDate = event.start;
+            return eventDate >= today && eventDate < tomorrow;
+        });
+        
+        const todayEventsList = document.getElementById('todayEventsList');
+        const todayEventsCount = document.getElementById('todayEventsCount');
+        
+        todayEventsCount.textContent = todayEvents.length;
+        
+        if (todayEvents.length === 0) {
+            todayEventsList.innerHTML = `
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-calendar-x fs-1 mb-3"></i>
+                    <p class="mb-0">На сегодня мероприятий нет</p>
+                    <small>Создайте новое мероприятие или проверьте другие дни</small>
+                </div>
+            `;
+        } else {
+            let eventsHTML = '<div class="list-group list-group-flush">';
+            
+            todayEvents.forEach(event => {
+                const eventData = event.extendedProps;
+                eventsHTML += `
+                    <div class="list-group-item border-0 event-item" data-event-id="${event.id}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="fw-bold mb-1">${event.title}</h6>
+                                <small class="text-muted">
+                                    <i class="bi bi-clock me-1"></i>
+                                    ${event.start.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}
+                                </small>
+                                ${eventData.location ? `
+                                    <small class="text-muted d-block">
+                                        <i class="bi bi-geo-alt me-1"></i>${eventData.location}
+                                    </small>
+                                ` : ''}
+                            </div>
+                            <span class="badge" style="background-color: ${event.backgroundColor}">${eventData.type}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            eventsHTML += '</div>';
+            todayEventsList.innerHTML = eventsHTML;
+            
+            // Добавляем обработчики клика на события
+            document.querySelectorAll('.event-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const eventId = this.getAttribute('data-event-id');
+                    const event = calendar.getEventById(eventId);
+                    if (event) {
+                        showEventModal(event);
+                    }
+                });
+            });
+        }
+    }
+    
+    // Обработчики кнопок навигации
+    document.getElementById('prevMonth').addEventListener('click', function() {
+        calendar.prev();
+    });
+    
+    document.getElementById('nextMonth').addEventListener('click', function() {
+        calendar.next();
+    });
+    
+    document.getElementById('todayBtn').addEventListener('click', function() {
+        calendar.today();
+    });
+    
+    // Обработчики кнопок вида
+    document.getElementById('dayView').addEventListener('click', function() {
+        calendar.changeView('timeGridDay');
+        updateButtonStates('dayView');
+    });
+    
+    document.getElementById('weekView').addEventListener('click', function() {
+        calendar.changeView('timeGridWeek');
+        updateButtonStates('weekView');
+    });
+    
+    document.getElementById('monthView').addEventListener('click', function() {
+        calendar.changeView('dayGridMonth');
+        updateButtonStates('monthView');
+    });
+    
+    // Обновление состояния кнопок вида
+    function updateButtonStates(activeView) {
+        ['dayView', 'weekView', 'monthView'].forEach(viewId => {
+            const btn = document.getElementById(viewId);
+            if (viewId === activeView) {
+                btn.classList.remove('btn-outline-primary');
+                btn.classList.add('btn-primary');
+            } else {
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-outline-primary');
+            }
+        });
+    }
+    
+    // Уведомления с SweetAlert2
+    document.getElementById('notificationsBtn').addEventListener('click', function() {
+        fetch('/trips/api/events/my/')
+            .then(response => response.json())
+            .then(data => {
+                let upcomingEvents = [];
+                const now = new Date();
+                const weekFromNow = new Date(now);
+                weekFromNow.setDate(weekFromNow.getDate() + 7);
+                
+                if (data.status === 'success' && data.events) {
+                    data.events.forEach(event => {
+                        if (event.date && event.time) {
+                            const [day, month, year] = event.date.split('.');
+                            const [hours, minutes] = event.time.split(':');
+                            const eventDate = new Date(year, month - 1, day, hours, minutes);
+                            
+                            if (eventDate >= now && eventDate <= weekFromNow) {
+                                upcomingEvents.push({
+                                    title: event.title,
+                                    date: event.date,
+                                    time: event.time,
+                                    type: event.type
+                                });
+                            }
+                        }
+                    });
+                }
+                
+                let notificationsHtml = '<div class="text-start">';
+                
+                if (upcomingEvents.length > 0) {
+                    upcomingEvents.slice(0, 3).forEach(event => {
+                        notificationsHtml += `
+                            <div class="alert alert-info mb-2">
+                                <i class="bi bi-calendar-event me-2"></i>
+                                <strong>${event.title}</strong><br>
+                                <small>${event.date}, ${event.time} (${event.type})</small>
+                            </div>
+                        `;
+                    });
+                    
+                    if (upcomingEvents.length > 3) {
+                        notificationsHtml += `
+                            <div class="alert alert-secondary mb-2">
+                                <i class="bi bi-three-dots me-2"></i>
+                                <small>И еще ${upcomingEvents.length - 3} предстоящих мероприятия</small>
+                            </div>
+                        `;
+                    }
+                } else {
+                    notificationsHtml += `
+                        <div class="alert alert-secondary">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <small>У вас нет предстоящих мероприятий на ближайшую неделю</small>
+                        </div>
+                    `;
+                }
+                
+                notificationsHtml += '</div>';
+                
+                Swal.fire({
+                    title: '<i class="bi bi-bell me-2"></i>Предстоящие мероприятия',
+                    html: notificationsHtml,
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="bi bi-check-all me-1"></i>Понятно',
+                    cancelButtonText: '<i class="bi bi-calendar-plus me-1"></i>Создать новое',
+                    reverseButtons: true,
+                    customClass: {
+                        popup: 'rounded-3 border-0 shadow-lg',
+                        confirmButton: 'btn btn-primary px-4',
+                        cancelButton: 'btn btn-secondary px-4'
+                    },
+                    buttonsStyling: false,
+                    width: '500px'
+                }).then((result) => {
+                    if (result.dismiss === Swal.DismissReason.cancel) {
+                        window.location.href = "{% url 'create_event' %}";
+                    }
+                });
+            });
+    });
+    
+    // Инициализация
+    initCalendar();
+    
+    // Обновление счетчика уведомлений
+    function updateNotificationsCount() {
+        fetch('/trips/api/events/my/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' && data.events) {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    
+                    let todayCount = 0;
+                    data.events.forEach(event => {
+                        if (event.date) {
+                            const [day, month, year] = event.date.split('.');
+                            const eventDate = new Date(year, month - 1, day);
+                            
+                            if (eventDate >= today && eventDate < tomorrow) {
+                                todayCount++;
+                            }
+                        }
+                    });
+                    
+                    document.getElementById('notificationsCount').textContent = todayCount;
+                }
+            });
+    }
+    
+    updateNotificationsCount();
+    
+    // Автообновление каждые 5 минут
+    setInterval(function() {
+        calendar.refetchEvents();
+        updateNotificationsCount();
+        updateTodayEvents();
+    }, 300000); // 5 минут
+});
+</script>
+
+<style>
+    /* Календарь */
+    .fc {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .fc-toolbar-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    
+    .fc-daygrid-day-number {
+        font-weight: bold;
+        color: #495057;
+    }
+    
+    .fc-day-today {
+        background-color: rgba(13, 110, 253, 0.1) !important;
+    }
+    
+    .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+        background-color: #0d6efd;
+        color: white;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .fc-event {
+        border-radius: 4px;
+        padding: 2px 5px;
+        margin: 1px 0;
+        cursor: pointer;
+        font-size: 0.85rem;
+    }
+    
+    .fc-event:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+        transition: all 0.2s;
+    }
+    
+    .fc-daygrid-event {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* События в списке */
+    .event-item {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .event-item:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+    
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .fc-toolbar {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .fc-toolbar-title {
+            font-size: 1.2rem;
+        }
+        
+        .fc-event {
+            font-size: 0.75rem;
+            padding: 1px 3px;
+        }
+    }
+    /* Стили для активной ссылки в сайдбаре */
+.nav-link.active {
+    background-color: #e7f1ff;
+    border-left: 3px solid #0d6efd;
+    color: #0d6efd !important;
+    font-weight: 500;
+}
+
+.nav-link {
+    color: #495057;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 0.25rem;
+    transition: all 0.2s;
+}
+
+.nav-link:hover {
+    background-color: #f8f9fa;
+    color: #0d6efd;
+}
+
+/* Аватарки */
+.avatar {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: bold;
+}
+
+/* Для высоты сайдбара */
+.min-vh-100 {
+    min-height: 100vh;
+}
+</style>
+    
+{% endblock %}

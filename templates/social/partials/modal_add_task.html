@@ -1,0 +1,47 @@
+<!-- Модальное окно добавления задачи -->
+<div class="modal fade" id="addTaskModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-card-checklist me-2"></i>Добавить задачу
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addTaskForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Название задачи *</label>
+                        <input type="text" class="form-control"
+                               name="title" placeholder="Например: Купить билеты" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Описание</label>
+                        <textarea class="form-control" name="description"
+                                  rows="3" placeholder="Детали задачи..."></textarea>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Назначить на</label>
+                            <select class="form-select" name="assigned_to">
+                                <option value="">Не назначено</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Срок выполнения</label>
+                            <input type="datetime-local" class="form-control" name="due_date">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="saveTaskBtn">
+                    <i class="bi bi-save me-1"></i> Сохранить задачу
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

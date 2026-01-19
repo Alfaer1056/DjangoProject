@@ -1,0 +1,146 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    
+    <!-- ПОДКЛЮЧЕНИЕ ТОЛЬКО ИЗ ОДНОГО ИСТОЧНИКА -->
+    {% comment %}
+    ВАРИАНТ А: Используй CDN (рекомендую, пока не настроена статика)
+    {% endcomment %}
+    
+    <!-- Bootstrap CSS (CDN) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" 
+          integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    
+    <!-- Bootstrap Icons (CDN) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <!-- SweetAlert2 CSS (CDN) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    
+    {% comment %}
+    ВАРИАНТ Б: Используй статику (когда файлы скачаны)
+    <!--
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/bootstrap-icons.css' %}">
+    <link rel="stylesheet" href="{% static 'css/sweetalert2.min.css' %}">
+    -->
+    {% endcomment %}
+    
+    <!-- Блок для дополнительных стилей в дочерних шаблонах -->
+    {% block extra_css %}{% endblock %}
+    
+    <!-- Блок для дополнительных head-элементов -->
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-light bg-light shadow-sm">
+            <div class="container-fluid">
+                <a class="navbar-brand fw-bold" href="{% url 'main' %}">
+                    <i class="bi bi-geo-alt me-2"></i>Планировщик поездок
+                </a>
+                <div class="d-flex align-items-center">
+                    {% if user.is_authenticated %}
+                        <span class="me-3 text-muted">
+                            <i class="bi bi-person-circle me-1"></i>{{ user.username }}
+                        </span>
+                        <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-box-arrow-right"></i> Выйти
+                        </a>
+                    {% else %}
+                        <a href="{% url 'login' %}" class="btn btn-outline-primary btn-sm me-2">
+                            <i class="bi bi-box-arrow-in-right"></i> Войти
+                        </a>
+                        <a href="{% url 'register' %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-person-plus"></i> Регистрация
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+    </header>
+    
+    <main role="main" class="container mt-4">
+        <!-- Блок для уведомлений Django messages -->
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        <!-- Основной контент -->
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- ПОДКЛЮЧЕНИЕ JavaScript (ПРАВИЛЬНЫЙ ПОРЯДОК) -->
+    
+    <!-- Bootstrap Bundle с Popper (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" 
+            integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" 
+            crossorigin="anonymous"></script>
+    
+    <!-- SweetAlert2 (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    {% comment %}
+    ВАРИАНТ Б: Используй статику (когда файлы скачаны)
+    <!--
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'js/sweetalert2.min.js' %}"></script>
+    -->
+    {% endcomment %}
+    
+    <!-- Блок для дополнительных скриптов в дочерних шаблонах -->
+    {% block extra_js %}{% endblock %}
+    
+    <!-- CSRF токен для AJAX запросов -->
+    {% csrf_token %}
+    
+    <!-- Глобальные функции JavaScript -->
+    <script>
+        // Глобальная функция для получения CSRF токена
+        function getCSRFToken() {
+            const csrfToken = document.querySelector('[name="csrfmiddlewaretoken"]')?.value || 
+                             document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+            return csrfToken;
+        }
+        
+        // Базовая конфигурация SweetAlert2
+        const swalConfig = {
+            customClass: {
+                popup: 'rounded-3 border-0 shadow-lg',
+                confirmButton: 'btn btn-danger px-4',
+                cancelButton: 'btn btn-secondary px-4'
+            },
+            buttonsStyling: false,
+            reverseButtons: true,
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            allowOutsideClick: () => !Swal.isLoading()
+        };
+        
+        // Проверка загрузки библиотек при старте
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== ПРОВЕРКА БИБЛИОТЕК ===');
+            console.log('Bootstrap доступен:', typeof bootstrap !== 'undefined');
+            console.log('SweetAlert2 доступен:', typeof Swal !== 'undefined');
+            
+            // Если Bootstrap не загрузился, покажем ошибку
+            if (typeof bootstrap === 'undefined') {
+                console.error('Bootstrap не загружен!');
+                alert('Ошибка: Bootstrap не загружен. Проверьте интернет-соединение.');
+            }
+        });
+    </script>
+</body>
+</html>

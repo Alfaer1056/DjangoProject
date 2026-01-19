@@ -1,0 +1,60 @@
+<!-- Модальное окно добавления траты -->
+<div class="modal fade" id="addExpenseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-receipt me-2"></i>Добавить трату
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addExpenseForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">На что потрачено *</label>
+                        <input type="text" class="form-control" 
+                               name="title" placeholder="Например: Билеты в кино, Обед" required>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Сумма (руб) *</label>
+                            <input type="number" class="form-control" 
+                                   name="amount" min="1" step="0.01" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Кто оплатил *</label>
+                            <select class="form-select" name="paid_by" required>
+                                <option value="">Выберите участника</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Разделить между участниками</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" 
+                                   id="splitEqually" name="split_equally" checked>
+                            <label class="form-check-label" for="splitEqually">
+                                Поровну между всеми участниками
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3" id="customSplitSection" style="display: none;">
+                        <label class="form-label fw-bold">Настройка долей</label>
+                        <div id="participantsSplitList">
+                            <!-- Динамически загружаем участников -->
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="saveExpenseBtn">
+                    <i class="bi bi-save me-1"></i> Сохранить трату
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

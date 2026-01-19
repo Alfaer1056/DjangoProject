@@ -1,0 +1,1055 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Мои друзья{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Левая боковая панель -->
+        <div class="col-lg-2 col-md-3 bg-light border-end min-vh-100">
+            <div class="profile-section p-3 border-bottom">
+                <div class="d-flex align-items-center">
+                    <div class="avatar me-3">
+                        <i class="bi bi-person-circle fs-2 text-primary"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold">{{ user.username }}</h6>
+                        <small class="text-muted">{{ user.email|default:"Email не указан" }}</small>
+                    </div>
+                </div>
+                <a href="{% url 'profile' %}" class="btn btn-sm btn-outline-primary w-100 mt-3">
+                    <i class="bi bi-gear me-1"></i> Профиль
+                </a>
+            </div>
+
+            <nav class="nav flex-column p-3">
+                <a class="nav-link" href="{% url 'main' %}">
+                    <i class="bi bi-house me-2"></i> Главная
+                </a>
+                <a class="nav-link" href="{% url 'my_events' %}">
+                    <i class="bi bi-calendar-event me-2"></i> Мои мероприятия
+                </a>
+                <a class="nav-link" href="{% url 'create_event' %}">
+                    <i class="bi bi-plus-circle me-2"></i> Создать мероприятие
+                </a>
+                <a class="nav-link" href="{% url 'calendar' %}">
+                    <i class="bi bi-calendar-week me-2"></i> Календарь
+                </a>
+                <a class="nav-link active" href="{% url 'friends' %}">
+                    <i class="bi bi-people me-2"></i> Друзья
+                </a>
+                <a class="nav-link" href="{% url 'map' %}">
+                    <i class="bi bi-map me-2"></i> Карта
+                </a>
+                <a class="nav-link" href="{% url 'settings' %}">
+                    <i class="bi bi-sliders me-2"></i> Настройки
+                </a>
+            </nav>
+        </div>
+
+        <!-- Основной контент -->
+        <div class="col-lg-10 col-md-9 py-4">
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-10 col-xl-8 mx-auto">
+                        <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white">
+        <h4 class="mb-0 fw-bold">
+            <i class="bi bi-people me-2"></i>Мои друзья
+        </h4>
+    </div>
+    <div class="card-body">
+
+        <!-- КАСТОМНЫЕ ВКЛАДКИ (без data-bs-toggle) -->
+        <div class="d-flex border-bottom mb-3" id="customFriendsTabs">
+            <button class="btn btn-outline-primary me-2 active" data-target="friendsTab">
+                <i class="bi bi-person-check me-1"></i>Друзья
+                {% if friends %}
+                <span class="badge bg-primary ms-1">{{ friends|length }}</span>
+                {% endif %}
+            </button>
+            <button class="btn btn-outline-primary me-2" data-target="requestsTab">
+                <i class="bi bi-envelope me-1"></i>Заявки
+                {% if incoming_requests %}
+                <span class="badge bg-danger ms-1">{{ incoming_requests|length }}</span>
+                {% endif %}
+            </button>
+            <button class="btn btn-outline-primary" data-target="searchTab">
+                <i class="bi bi-search me-1"></i>Поиск друзей
+            </button>
+        </div>
+
+        <!-- Содержимое вкладок -->
+        <div id="customTabsContent">
+
+            <!-- Вкладка 1: Друзья -->
+            <div id="friendsTab" class="tab-content active">
+                {% if friends %}
+                    <div class="list-group list-group-flush">
+                        {% for friend in friends %}
+                        <div class="list-group-item border-0 py-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar bg-primary text-white rounded-circle me-3"
+                                         style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                                        <span class="fs-5">{{ friend.username|first|upper }}</span>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">{{ friend.username }}</h6>
+                                        <small class="text-muted">{{ friend.email }}</small>
+                                    </div>
+                                </div>
+                                <div class="btn-group">
+                                    <a href="{% url 'profile' friend.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-person"></i> Профиль
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-danger remove-friend-btn"
+                                            data-user-id="{{ friend.id }}"
+                                            data-username="{{ friend.username }}">
+                                        <i class="bi bi-person-dash"></i> Удалить
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-people display-1 text-muted"></i>
+                        <h5 class="mt-3">У вас пока нет друзей</h5>
+                        <p class="text-muted">Найдите друзей и добавьте их, чтобы планировать совместные поездки</p>
+                        <button class="btn btn-primary" id="goToSearchBtn">
+                <i class="bi bi-search me-1"></i> Найти друзей
+            </button>
+        </div>
+                {% endif %}
+            </div>
+
+                                    <!-- Вкладка 2: Заявки -->
+<div id="requestsTab" class="tab-content" style="display: none;">
+
+    <!-- Входящие заявки -->
+    {% if incoming_requests %}
+    <div class="mb-4">
+        <h5 class="fw-bold mb-3">
+            <i class="bi bi-envelope-plus text-primary me-2"></i>
+            Входящие заявки ({{ incoming_requests|length }})
+        </h5>
+        <div class="list-group list-group-flush">
+            {% for request in incoming_requests %}
+            <div class="list-group-item border-0 py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar bg-warning text-white rounded-circle me-3"
+                             style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                            <span class="fs-5">{{ request.from_user.username|first|upper }}</span>
+                        </div>
+                        <div>
+                            <h6 class="mb-1">{{ request.from_user.username }}</h6>
+                            <small class="text-muted">Хочет добавить вас в друзья</small>
+                            <div class="small text-muted mt-1">
+                                <i class="bi bi-clock me-1"></i>
+                                {{ request.created_at|date:"d.m.Y H:i" }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <form method="post" action="{% url 'accept_friend_request' request.id %}"
+                              class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-success">
+                                <i class="bi bi-check-lg"></i> Принять
+                            </button>
+                        </form>
+                        <form method="post" action="{% url 'reject_friend_request' request.id %}"
+                              class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-x-lg"></i> Отклонить
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        У вас нет входящих заявок в друзья
+    </div>
+    {% endif %}
+
+    <!-- Исходящие заявки -->
+    {% if outgoing_requests %}
+    <div class="mt-4">
+        <h5 class="fw-bold mb-3">
+            <i class="bi bi-envelope-arrow-up text-info me-2"></i>
+            Исходящие заявки ({{ outgoing_requests|length }})
+        </h5>
+        <div class="list-group list-group-flush">
+            {% for request in outgoing_requests %}
+            <div class="list-group-item border-0 py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar bg-info text-white rounded-circle me-3"
+                             style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                            <span class="fs-5">{{ request.to_user.username|first|upper }}</span>
+                        </div>
+                        <div>
+                            <h6 class="mb-1">{{ request.to_user.username }}</h6>
+                            <small class="text-muted">Ожидает подтверждения</small>
+                            <div class="small text-muted mt-1">
+                                <i class="bi bi-clock me-1"></i>
+                                {{ request.created_at|date:"d.m.Y H:i" }}
+                            </div>
+                        </div>
+                    </div>
+                    <form method="post" action="{% url 'reject_friend_request' request.id %}"
+                          class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Отозвать
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+                                    <!-- Вкладка 3: Поиск друзей -->
+                                    <div id="searchTab" class="tab-content" style="display: none;">
+                                        <div class="card border-0 bg-light">
+                                            <div class="card-body">
+                                                <h5 class="fw-bold mb-3">
+                                                    <i class="bi bi-search me-2"></i>Найти друзей
+                                                </h5>
+
+                                                <form method="post" action="{% url 'search_friends' %}"
+                                                      id="searchFriendsForm" class="mb-4">
+                                                    {% csrf_token %}
+                                                    <div class="input-group">
+                                                        <input type="text" name="username" class="form-control"
+                           placeholder="Введите имя пользователя"
+                           required>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Искать
+                    </button>
+                </div>
+                <small class="text-muted d-block mt-1">
+                    <i class="bi bi-info-circle"></i> Ищите пользователей по имени
+                </small>
+            </form>
+
+                                                <!-- Результаты поиска будут здесь -->
+            <div id="searchResults">
+                <div class="text-center py-4">
+                    <i class="bi bi-people display-1 text-muted"></i>
+                    <p class="text-muted mt-3">Введите имя пользователя для поиска</p>
+                    <small class="text-muted">Пример: "alex", "maria", "user123"</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно подтверждения удаления друга -->
+<div class="modal fade" id="removeFriendModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Удалить из друзей?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите удалить <span id="friendUsername" class="fw-bold"></span> из друзей?</p>
+                <p class="text-muted small">Это действие нельзя будет отменить.</p>
+            </div>
+            <div class="modal-footer">
+                <form method="post" action="" id="removeFriendForm">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-danger">Удалить из друзей</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== КАСТОМНЫЕ ВКЛАДКИ ДЛЯ ДРУЗЕЙ ===');
+
+    // 1. ГЛОБАЛЬНАЯ ФУНКЦИЯ ДЛЯ ПЕРЕКЛЮЧЕНИЯ ВКЛАДОК
+    window.switchTab = function(targetId) {
+        console.log('Переключение на вкладку:', targetId);
+
+        // Находим кнопку по data-target
+        const tabButtons = document.querySelectorAll('#customFriendsTabs button');
+        const targetButton = Array.from(tabButtons).find(btn =>
+            btn.getAttribute('data-target') === targetId
+        );
+
+        if (!targetButton) {
+            console.error('Кнопка для вкладки не найдена:', targetId);
+            return;
+        }
+
+        // Убираем активность у всех кнопок
+        tabButtons.forEach(btn => {
+            btn.classList.remove('active', 'btn-primary');
+            btn.classList.add('btn-outline-primary');
+        });
+
+        // Добавляем активность текущей
+        targetButton.classList.remove('btn-outline-primary');
+        targetButton.classList.add('active', 'btn-primary');
+
+        // Скрываем все вкладки
+        document.querySelectorAll('#customTabsContent .tab-content').forEach(tab => {
+            tab.style.display = 'none';
+            tab.classList.remove('active');
+        });
+
+        // Показываем нужную вкладку
+        const targetTab = document.getElementById(targetId);
+        if (targetTab) {
+            targetTab.style.display = 'block';
+            targetTab.classList.add('active');
+            console.log('Показана вкладка:', targetId);
+        }
+    };
+
+    // 2. ИНИЦИАЛИЗАЦИЯ КНОПОК ВКЛАДОК
+    function initTabs() {
+        console.log('Инициализация вкладок...');
+
+        const tabButtons = document.querySelectorAll('#customFriendsTabs button');
+        console.log('Найдено кнопок:', tabButtons.length);
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const targetId = this.getAttribute('data-target');
+                if (targetId) {
+                    switchTab(targetId);
+                }
+            });
+        });
+
+        // Активируем первую вкладку
+        if (tabButtons.length > 0) {
+            const firstTarget = tabButtons[0].getAttribute('data-target');
+            if (firstTarget) {
+                switchTab(firstTarget);
+            }
+        }
+    }
+
+    // 3. ИНИЦИАЛИЗАЦИЯ КНОПКИ "НАЙТИ ДРУЗЕЙ" В ПУСТОМ СПИСКЕ
+    function initGoToSearchButton() {
+        const goToSearchBtn = document.getElementById('goToSearchBtn');
+        if (goToSearchBtn) {
+            goToSearchBtn.addEventListener('click', function() {
+                switchTab('searchTab');
+            });
+        }
+    }
+
+    // 4. AJAX ПОИСК ДРУЗЕЙ
+    // 4. AJAX ПОИСК ДРУЗЕЙ
+function initSearchForm() {
+    const searchForm = document.getElementById('searchFriendsForm');
+    if (searchForm) {
+        console.log('Форма поиска найдена');
+
+        searchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const input = this.querySelector('input[name="username"]');
+            const query = input ? input.value.trim() : '';
+
+            if (!query) {
+                alert('Введите имя пользователя для поиска');
+                return;
+            }
+
+            // Показываем загрузку
+            const resultsContainer = document.getElementById('searchResults');
+            if (resultsContainer) {
+                resultsContainer.innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                        <p class="mt-2">Ищем "${query}"...</p>
+                    </div>
+                `;
+            }
+
+            // Создаем FormData
+            const formData = new FormData(this);
+
+            // Отправляем AJAX запрос
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCSRFToken()
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.users && data.users.length > 0) {
+                    // Рендерим результаты
+                    renderSearchResults(data.users, query);
+
+                    // Добавляем обработчики для кнопок "Добавить в друзья"
+                    initAddFriendButtons();
+                } else {
+                    // Показываем сообщение "не найдено"
+                    resultsContainer.innerHTML = `
+                        <div class="text-center py-4">
+                            <i class="bi bi-search display-1 text-muted"></i>
+                            <h5 class="mt-3">Пользователи не найдены</h5>
+                            <p class="text-muted">По запросу "${query}" ничего не найдено</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка поиска:', error);
+                if (resultsContainer) {
+                    resultsContainer.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Ошибка поиска. Попробуйте позже.
+                        </div>
+                    `;
+                }
+            });
+        });
+    }
+}
+
+// Функция для инициализации кнопок "Добавить в друзья"
+function initAddFriendButtons() {
+    console.log('Инициализация кнопок "Добавить в друзья"');
+    
+    document.querySelectorAll('.add-friend-btn').forEach(btn => {
+        // Удаляем старые обработчики чтобы избежать дублирования
+        btn.replaceWith(btn.cloneNode(true));
+    });
+    
+    // Назначаем новые обработчики
+    document.querySelectorAll('.add-friend-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const userId = this.getAttribute('data-user-id');
+            const username = this.getAttribute('data-username');
+            const button = this;
+            
+            console.log(`Клик по кнопке для пользователя: ${username} (ID: ${userId})`);
+            
+            // Проверяем, не активна ли уже кнопка
+            if (button.classList.contains('processing') || button.disabled) {
+                console.log('Кнопка уже обрабатывается или отключена');
+                return;
+            }
+            
+            // Добавляем класс processing
+            button.classList.add('processing');
+            
+            // Сохраняем оригинальное состояние кнопки
+            const originalHTML = button.innerHTML;
+            const originalClasses = button.className;
+            
+            // Показываем состояние загрузки
+            button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Отправка...';
+            button.disabled = true;
+            
+            try {
+                // Получаем CSRF токен
+                const csrfToken = getCSRFToken();
+                if (!csrfToken) {
+                    throw new Error('CSRF токен не найден');
+                }
+                
+                // Отправляем запрос
+                const response = await fetch(`/friends/request/${userId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `csrfmiddlewaretoken=${encodeURIComponent(csrfToken)}`
+                });
+                
+                // Проверяем ответ
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Ответ от сервера:', data);
+                
+                if (data.success) {
+                    // УСПЕХ: Заявка отправлена
+                    await handleRequestSuccess(button, data, username);
+                } else {
+                    // ОШИБКА
+                    await handleRequestError(button, data, username, originalHTML, originalClasses);
+                }
+                
+            } catch (error) {
+                console.error('Ошибка при отправке заявки:', error);
+                
+                // Восстанавливаем кнопку
+                button.innerHTML = originalHTML;
+                button.className = originalClasses;
+                button.disabled = false;
+                button.classList.remove('processing');
+                
+                // Показываем ошибку
+                showNotification('error', 'Ошибка соединения с сервером');
+                
+            } finally {
+                // Убираем класс processing
+                setTimeout(() => {
+                    button.classList.remove('processing');
+                }, 1000);
+            }
+        });
+    });
+}
+
+// Обработка успешной отправки заявки
+async function handleRequestSuccess(button, data, username) {
+    // Меняем кнопку
+    button.innerHTML = '<i class="bi bi-clock me-1"></i> Заявка отправлена';
+    button.className = button.className.replace('btn-primary', 'btn-warning');
+    button.classList.add('disabled');
+    button.disabled = true;
+    
+    // Обновляем бейдж рядом с именем пользователя
+    updateUserBadge(button, 'sent', username);
+    
+    // Показываем уведомление
+    showNotification('success', data.message || `Заявка отправлена ${username}`);
+    
+    // Если есть request_id, сохраняем его в data-атрибут
+    if (data.request_id) {
+        button.setAttribute('data-request-id', data.request_id);
+    }
+    
+    // Добавляем кнопку отмены (опционально)
+    addCancelButtonIfNeeded(button, data.request_id);
+}
+
+// Обработка ошибки при отправке заявки
+async function handleRequestError(button, data, username, originalHTML, originalClasses) {
+    if (data.error) {
+        if (data.error.includes('уже отправлена') || data.error.includes('Заявка уже отправлена')) {
+            // Заявка уже была отправлена ранее
+            button.innerHTML = '<i class="bi bi-clock me-1"></i> Заявка отправлена';
+            button.className = button.className.replace('btn-primary', 'btn-warning');
+            button.classList.add('disabled');
+            button.disabled = true;
+            
+            updateUserBadge(button, 'sent', username);
+            showNotification('info', data.error);
+            
+        } else if (data.error.includes('уже друзья') || data.error.includes('Вы уже друзья')) {
+            // Уже друзья
+            button.innerHTML = '<i class="bi bi-check-circle me-1"></i> Уже друзья';
+            button.className = button.className.replace('btn-primary', 'btn-success');
+            button.classList.add('disabled');
+            button.disabled = true;
+            
+            updateUserBadge(button, 'friend', username);
+            showNotification('info', data.error);
+            
+        } else {
+            // Другие ошибки
+            button.innerHTML = originalHTML;
+            button.className = originalClasses;
+            button.disabled = false;
+            showNotification('error', data.error);
+        }
+    } else {
+        // Неизвестная ошибка
+        button.innerHTML = originalHTML;
+        button.className = originalClasses;
+        button.disabled = false;
+        showNotification('error', 'Неизвестная ошибка');
+    }
+}
+
+// Обновление бейджа рядом с именем пользователя
+function updateUserBadge(button, status, username) {
+    const listItem = button.closest('.list-group-item');
+    if (!listItem) return;
+    
+    const usernameElement = listItem.querySelector('h6');
+    if (!usernameElement) return;
+    
+    // Удаляем старый бейдж если есть
+    const oldBadge = usernameElement.querySelector('.badge');
+    if (oldBadge) {
+        oldBadge.remove();
+    }
+    
+    // Создаем новый бейдж в зависимости от статуса
+    const badge = document.createElement('span');
+    badge.className = 'badge ms-2';
+    
+    switch(status) {
+        case 'sent':
+            badge.classList.add('bg-warning');
+            badge.innerHTML = '<i class="bi bi-clock me-1"></i>Заявка отправлена';
+            break;
+        case 'friend':
+            badge.classList.add('bg-success');
+            badge.innerHTML = '<i class="bi bi-check-circle me-1"></i>Друг';
+            break;
+        case 'received':
+            badge.classList.add('bg-info');
+            badge.innerHTML = '<i class="bi bi-envelope me-1"></i>Отправил вам заявку';
+            break;
+    }
+    
+    usernameElement.appendChild(badge);
+}
+
+// Добавление кнопки отмены заявки (опционально)
+function addCancelButtonIfNeeded(button, requestId) {
+    if (!requestId) return;
+    
+    const listItem = button.closest('.list-group-item');
+    if (!listItem) return;
+    
+    const actionsContainer = listItem.querySelector('.actions');
+    if (!actionsContainer) return;
+    
+    // Проверяем, нет ли уже кнопки отмены
+    if (actionsContainer.querySelector('.cancel-request-btn')) return;
+    
+    // Создаем кнопку отмены
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn btn-sm btn-outline-secondary cancel-request-btn mt-2';
+    cancelBtn.innerHTML = '<i class="bi bi-x-circle me-1"></i> Отменить заявку';
+    cancelBtn.setAttribute('data-request-id', requestId);
+    
+    cancelBtn.addEventListener('click', function() {
+        cancelFriendRequest(requestId, button, cancelBtn);
+    });
+    
+    actionsContainer.appendChild(cancelBtn);
+}
+
+// Функция отмены заявки
+async function cancelFriendRequest(requestId, originalButton, cancelButton) {
+    if (!confirm('Отменить заявку в друзья?')) return;
+    
+    cancelButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+    cancelButton.disabled = true;
+    
+    try {
+        const response = await fetch(`/friends/reject/${requestId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        if (response.ok) {
+            // Восстанавливаем оригинальную кнопку
+            originalButton.innerHTML = '<i class="bi bi-person-plus me-1"></i> Добавить в друзья';
+            originalButton.className = originalButton.className.replace('btn-warning', 'btn-primary');
+            originalButton.classList.remove('disabled');
+            originalButton.disabled = false;
+            
+            // Удаляем бейдж
+            updateUserBadge(originalButton, 'none', '');
+            
+            // Удаляем кнопку отмены
+            cancelButton.remove();
+            
+            showNotification('success', 'Заявка отменена');
+        }
+    } catch (error) {
+        console.error('Ошибка отмены заявки:', error);
+        cancelButton.innerHTML = '<i class="bi bi-x-circle me-1"></i> Отменить заявку';
+        cancelButton.disabled = false;
+        showNotification('error', 'Ошибка отмены заявки');
+    }
+}
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    initAddFriendButtons();
+    
+    // Также инициализируем при AJAX загрузке результатов поиска
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.addedNodes.length) {
+                initAddFriendButtons();
+            }
+        });
+    });
+    
+    const searchResults = document.getElementById('searchResults');
+    if (searchResults) {
+        observer.observe(searchResults, { childList: true, subtree: true });
+    }
+});
+
+// Функция для рендеринга результатов поиска
+function renderSearchResults(users, query) {
+    const container = document.getElementById('searchResults');
+    if (!container) return;
+
+    let html = `
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            Найдено ${users.length} пользователей по запросу "${query}"
+        </div>
+        <div class="list-group list-group-flush">
+    `;
+
+    users.forEach(user => {
+        let statusBadge = '';
+        let actionButton = '';
+
+        if (user.is_friend) {
+            statusBadge = '<span class="badge bg-success ms-2"><i class="bi bi-check-circle me-1"></i>Уже друзья</span>';
+        } else if (user.has_pending_request) {
+            statusBadge = '<span class="badge bg-warning ms-2"><i class="bi bi-clock me-1"></i>Заявка отправлена</span>';
+        } else {
+            actionButton = `
+                <button class="btn btn-sm btn-primary add-friend-btn"
+                        data-user-id="${user.id}"
+                        data-username="${user.username}">
+                    <i class="bi bi-person-plus me-1"></i> Добавить
+                </button>
+            `;
+        }
+
+        html += `
+            <div class="list-group-item border-0 py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar bg-secondary text-white rounded-circle me-3"
+                             style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                            <span class="fs-5">${user.username.charAt(0).toUpperCase()}</span>
+                        </div>
+                        <div>
+                            <h6 class="mb-1">
+                                ${user.username}
+                                ${statusBadge}
+                            </h6>
+                            <small class="text-muted">${user.email || 'Email не указан'}</small>
+                        </div>
+                    </div>
+                    <div>
+                        ${actionButton}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+
+// Обработчик для кнопок "Добавить в друзья"
+document.querySelectorAll('.add-friend-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const userId = this.getAttribute('data-user-id');
+        const username = this.getAttribute('data-username');
+        const button = this;
+        
+        // Проверяем, не отключена ли уже кнопка
+        if (button.classList.contains('disabled') || button.disabled) {
+            console.log('Кнопка уже отключена');
+            return;
+        }
+        
+        // Меняем кнопку на "ожидание"
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        button.disabled = true;
+        
+        // Отправляем запрос
+        fetch(`/friends/request/${userId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Ответ сервера:', data);
+            
+            if (data.success) {
+                // Успешно отправлено
+                updateButtonToSent(button, username);
+                showNotification('success', data.message);
+            } else {
+                // Ошибка
+                if (data.error && data.error.includes('уже отправлена')) {
+                    // Заявка уже отправлена - обновляем UI
+                    updateButtonToSent(button, username);
+                    showNotification('info', data.error);
+                } else if (data.error && data.error.includes('уже друзья')) {
+                    // Уже друзья
+                    updateButtonToFriend(button, username);
+                    showNotification('info', data.error);
+                } else {
+                    // Другая ошибка
+                    button.innerHTML = originalHTML;
+                    button.disabled = false;
+                    showNotification('danger', data.error || 'Ошибка отправки заявки');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+            button.innerHTML = originalHTML;
+            button.disabled = false;
+            showNotification('danger', 'Ошибка соединения');
+        });
+    });
+});
+
+// Функция обновления кнопки в статус "Заявка отправлена"
+function updateButtonToSent(button, username) {
+    button.innerHTML = '<i class="bi bi-clock me-1"></i> Заявка отправлена';
+    button.classList.remove('btn-primary');
+    button.classList.add('btn-warning', 'disabled');
+    button.disabled = true;
+    
+    // Обновляем бейдж рядом с именем
+    const listItem = button.closest('.list-group-item');
+    if (listItem) {
+        const usernameElement = listItem.querySelector('h6');
+        if (usernameElement) {
+            // Удаляем старый бейдж если есть
+            const oldBadge = usernameElement.querySelector('.badge');
+            if (oldBadge) oldBadge.remove();
+            
+            // Добавляем новый бейдж
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-warning ms-2';
+            badge.innerHTML = '<i class="bi bi-clock me-1"></i>Заявка отправлена';
+            usernameElement.appendChild(badge);
+        }
+    }
+}
+    
+
+// Вместо 'danger' используй 'error' для SweetAlert2
+function showNotification(type, message) {
+    if (typeof Swal !== 'undefined') {
+        // SweetAlert2 использует 'error' вместо 'danger'
+        const sweetType = type === 'danger' ? 'error' : type;
+        
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+        });
+        
+        Toast.fire({
+            icon: sweetType,
+            title: message
+        });
+    } else {
+        // Простой alert для backup
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 3000);
+    }
+}
+
+    // 5. УДАЛЕНИЕ ДРУЗЕЙ
+    function initRemoveFriendButtons() {
+        document.querySelectorAll('.remove-friend-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const username = this.getAttribute('data-username');
+                if (confirm(`Удалить ${username} из друзей?`)) {
+                    const userId = this.getAttribute('data-user-id');
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = `/friends/remove/${userId}/`;
+
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrfmiddlewaretoken';
+                    csrfInput.value = getCSRFToken();
+
+                    form.appendChild(csrfInput);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        });
+    }
+
+    // 6. ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ CSRF
+    function getCSRFToken() {
+        return document.querySelector('[name="csrfmiddlewaretoken"]')?.value ||
+               document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+    }
+
+    // 7. ЗАПУСК ВСЕХ ИНИЦИАЛИЗАЦИЙ
+    initTabs();
+    initGoToSearchButton();
+    initSearchForm();
+    initRemoveFriendButtons();
+
+    console.log('=== ИНИЦИАЛИЗАЦИЯ ЗАВЕРШЕНА ===');
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* === ОБЩИЕ СТИЛИ === */
+
+/* Для высоты сайдбара */
+.min-vh-100 {
+    min-height: 100vh;
+}
+
+/* Аватарки */
+.avatar {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: bold;
+}
+
+/* === СТИЛИ САЙДБАРА === */
+
+.nav-link {
+    color: #495057;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 0.25rem;
+    transition: all 0.2s;
+}
+
+.nav-link:hover {
+    background-color: #f8f9fa;
+    color: #0d6efd;
+}
+
+.nav-link.active {
+    background-color: #e7f1ff;
+    border-left: 3px solid #0d6efd;
+    color: #0d6efd !important;
+    font-weight: 500;
+}
+
+/* === СТИЛИ ВКЛАДОК ДРУЗЕЙ === */
+
+/* Кастомные вкладки (кнопки) */
+#customFriendsTabs button {
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s;
+}
+
+#customFriendsTabs button.active {
+    font-weight: 600;
+}
+
+/* Контент вкладок */
+.tab-content {
+    animation: fadeIn 0.3s ease-in;
+}
+
+.tab-content:not(.active) {
+    display: none !important;
+}
+
+.tab-content.active {
+    display: block !important;
+}
+
+/* Анимация появления */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Старые Bootstrap вкладки (на всякий случай) */
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.active,
+.tab-pane.show {
+    display: block;
+}
+
+/* === ОСТАЛЬНОЕ === */
+
+/* Старые стили (можно удалить, если не используются) */
+#friendsTabs .nav-link {
+    cursor: pointer;
+}
+
+#friendsTabs .nav-link.active {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,824 @@
+{% extends 'base.html' %}
+
+{% block title %}Создать мероприятие{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Левый сайдбар -->
+        <div class="col-lg-2 col-md-3 sidebar bg-light border-end">
+            <div class="profile-section p-3 border-bottom">
+                <div class="d-flex align-items-center">
+                    <div class="avatar me-3">
+                        <i class="bi bi-person-circle fs-2 text-primary"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold">{{ user.username }}</h6>
+                        <small class="text-muted">{{ user.email|default:"Email не указан" }}</small>
+                    </div>
+                </div>
+                <a href="{% url 'profile' %}" class="btn btn-sm btn-outline-primary w-100 mt-3">
+                    <i class="bi bi-gear me-1"></i> Профиль
+                </a>
+            </div>
+
+            <nav class="nav flex-column p-3">
+    <a class="nav-link" href="{% url 'main' %}">
+        <i class="bi bi-house me-2"></i> Главная
+    </a>
+    <a class="nav-link active" href="{% url 'my_events' %}">
+        <i class="bi bi-calendar-event me-2"></i> Мои мероприятия
+    </a>
+    <a class="nav-link" href="{% url 'create_event' %}">
+        <i class="bi bi-plus-circle me-2"></i> Создать мероприятие
+    </a>
+    <a class="nav-link" href="{% url 'calendar' %}">
+        <i class="bi bi-calendar-week me-2"></i> Календарь
+    </a>
+    <a class="nav-link" href="{% url 'friends' %}">
+        <i class="bi bi-people me-2"></i> Друзья
+    </a>
+    <a class="nav-link" href="{% url 'map' %}">
+        <i class="bi bi-map me-2"></i> Карта
+    </a>
+    <a class="nav-link" href="{% url 'settings' %}">
+        <i class="bi bi-sliders me-2"></i> Настройки
+    </a>
+</nav>
+        </div>
+
+        <!-- Основной контент -->
+        <div class="col-lg-10 col-md-9 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 fw-bold mb-0">
+                    <i class="bi bi-plus-circle me-2"></i>Создать мероприятие
+                </h1>
+                <button type="button" class="btn btn-outline-secondary" id="notificationsBtn">
+                    <i class="bi bi-bell"></i>
+                    <span class="badge bg-danger rounded-pill">3</span>
+                </button>
+            </div>
+
+            <!-- Форма создания -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <form method="post" id="createEventForm">
+                        {% csrf_token %}
+                        <div class="row mb-4">
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold">Название мероприятия *</label>
+                                <input type="text" class="form-control form-control-lg"
+                                       name="event_name" placeholder="Введите название" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Тип мероприятия</label>
+                                <select class="form-select" name="event_type">
+                                    <option value="meeting">Встреча</option>
+                                    <option value="party">Вечеринка</option>
+                                    <option value="conference">Конференция</option>
+                                    <option value="training">Тренинг</option>
+                                    <option value="other">Другое</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Дата и время начала *</label>
+                                <input type="datetime-local" class="form-control" name="start_datetime" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Дата и время окончания</label>
+                                <input type="datetime-local" class="form-control" name="end_datetime">
+                            </div>
+                        </div>
+
+                        <!-- Блок выбора места проведения -->
+<div class="card border mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0 fw-bold">
+            <i class="bi bi-geo-alt me-2"></i>Место проведения
+        </h5>
+    </div>
+    <div class="card-body">
+        <!-- Радиокнопки выбора типа места -->
+        <div class="mb-4">
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio"
+                       name="location_type" id="locationAddress"
+                       value="address" checked>
+                <label class="form-check-label fw-bold" for="locationAddress">
+                    Указать адрес
+                </label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio"
+                       name="location_type" id="locationOnline"
+                       value="online">
+                <label class="form-check-label fw-bold" for="locationOnline">
+                    Онлайн-ссылка
+                </label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio"
+                       name="location_type" id="locationMap"
+                       value="map">
+                <label class="form-check-label fw-bold" for="locationMap">
+                    Точка на карте
+                </label>
+            </div>
+        </div>
+
+        <!-- Поле для адреса (ТОЛЬКО для типа "адрес") -->
+        <div class="mb-3" id="addressField">
+            <label class="form-label fw-bold">Адрес мероприятия *</label>
+            <input type="text" class="form-control"
+                   id="addressInput"
+                   name="address"
+                   placeholder="Введите полный адрес"
+                   required>
+            <small class="text-muted">Например: Москва, ул. Тверская, д. 1</small>
+        </div>
+
+        <!-- Поле для онлайн-ссылки (ТОЛЬКО для типа "онлайн") -->
+        <div class="mb-3 d-none" id="onlineField">
+            <label class="form-label fw-bold">Онлайн-ссылка *</label>
+            <input type="url" class="form-control"
+                   id="onlineLinkInput"
+                   name="online_link"
+                   placeholder="https://meet.google.com/..."
+                   pattern="https?://.+">
+            <small class="text-muted">Ссылка на Zoom, Google Meet, Skype и т.д.</small>
+        </div>
+
+        <!-- Блок для точки на карте (ТОЛЬКО для типа "карта") -->
+        <div class="d-none" id="mapField">
+            <div class="card bg-light border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0">
+                            <i class="bi bi-pin-map me-2"></i>Выбранная точка на карте
+                        </h6>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="changeMapPointBtn">
+                            <i class="bi bi-map me-1"></i> Выбрать на карте
+                        </button>
+                    </div>
+
+                    <!-- Отображение выбранной точки -->
+                    <div id="selectedMapPointInfo" class="bg-white p-3 rounded border">
+                        <div class="text-center text-muted" id="noPointSelected">
+                            <i class="bi bi-map fs-1 mb-2"></i>
+                            <p class="mb-0">Точка не выбрана</p>
+                            <small>Нажмите "Выбрать на карте" чтобы выбрать место</small>
+                        </div>
+
+                        <div id="pointDetails" class="d-none">
+                            <div class="mb-2">
+                                <strong>Адрес:</strong>
+                                <span id="pointAddress"></span>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Широта:</strong>
+                                    <span id="pointLat"></span>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Долгота:</strong>
+                                    <span id="pointLng"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Скрытые поля для координат (ДОБАВЬТЕ ИХ!) -->
+                    <input type="hidden" name="latitude" id="latitudeInput">
+                    <input type="hidden" name="longitude" id="longitudeInput">
+                    <input type="hidden" name="map_address" id="mapAddressInput">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Описание мероприятия</label>
+                            <textarea class="form-control" name="description" rows="4"
+                                      placeholder="Опишите ваше мероприятие..."></textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Пригласить участников</label>
+                            <select class="form-select" name="participants" multiple>
+                                <option>Алексей</option>
+                                <option>Мария</option>
+                                <option>Иван</option>
+                                <option>Ольга</option>
+                                <option>Дмитрий</option>
+                            </select>
+                            <small class="text-muted">Удерживайте Ctrl для выбора нескольких участников</small>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-5">
+                            <a href="{% url 'my_events' %}" class="btn btn-outline-secondary">Отмена</a>
+                            <button type="submit" class="btn btn-primary btn-lg px-5">
+                                <i class="bi bi-check-lg me-2"></i>Создать мероприятие
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно уведомлений -->
+<div class="modal fade" id="notificationsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-bell me-2"></i>Уведомления
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <!-- То же содержание что и в main -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary">Отметить все как прочитанные</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #selectedMapPointInfo {
+        min-height: 150px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #pointDetails {
+        width: 100%;
+    }
+     #selectedMapPointInfo {
+        min-height: 150px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #pointDetails {
+        width: 100%;
+    }
+
+    /* Стили для SweetAlert2 */
+    .swal2-popup {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    /* Стили для списка уведомлений в SweetAlert2 */
+    .swal2-html-container .alert {
+        margin-bottom: 10px;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid;
+        font-size: 14px;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Переключение между типами мест
+    const locationTypeRadios = document.querySelectorAll('input[name="location_type"]');
+    const addressField = document.getElementById('addressField');
+    const onlineField = document.getElementById('onlineField');
+    const mapField = document.getElementById('mapField');
+
+    function updateLocationFields() {
+        const selectedType = document.querySelector('input[name="location_type"]:checked').value;
+
+        // Скрываем все поля
+        addressField.classList.add('d-none');
+        onlineField.classList.add('d-none');
+        mapField.classList.add('d-none');
+        
+        // Снимаем required со всех полей
+        document.getElementById('addressInput').required = false;
+        if (document.getElementById('onlineLinkInput')) {
+            document.getElementById('onlineLinkInput').required = false;
+        }
+
+        // Показываем нужное поле и устанавливаем required
+        if (selectedType === 'address') {
+            addressField.classList.remove('d-none');
+            document.getElementById('addressInput').required = true;
+        } else if (selectedType === 'online') {
+            onlineField.classList.remove('d-none');
+            if (document.getElementById('onlineLinkInput')) {
+                document.getElementById('onlineLinkInput').required = true;
+            }
+        } else if (selectedType === 'map') {
+            mapField.classList.remove('d-none');
+            checkMapPoint();
+        }
+        
+        console.log('Тип места установлен на:', selectedType);
+    }
+
+    locationTypeRadios.forEach(radio => {
+        radio.addEventListener('change', updateLocationFields);
+    });
+
+    // Проверка сохраненной точки с карты
+    function checkMapPoint() {
+        const savedPoint = localStorage.getItem('selectedMapPoint');
+        const noPointDiv = document.getElementById('noPointSelected');
+        const pointDetailsDiv = document.getElementById('pointDetails');
+
+        if (savedPoint) {
+            try {
+                const pointData = JSON.parse(savedPoint);
+                
+                // Заполняем отображение
+                document.getElementById('pointAddress').textContent = pointData.address;
+                document.getElementById('pointLat').textContent = pointData.coordinates[0].toFixed(6);
+                document.getElementById('pointLng').textContent = pointData.coordinates[1].toFixed(6);
+                
+                // Заполняем скрытые поля
+                document.getElementById('latitudeInput').value = pointData.coordinates[0];
+                document.getElementById('longitudeInput').value = pointData.coordinates[1];
+                document.getElementById('mapAddressInput').value = pointData.address;
+                
+                // Показываем детали
+                noPointDiv.classList.add('d-none');
+                pointDetailsDiv.classList.remove('d-none');
+                
+            } catch (e) {
+                console.error('Ошибка разбора точки:', e);
+                clearMapPoint();
+            }
+        } else {
+            clearMapPoint();
+        }
+    }
+
+    function clearMapPoint() {
+        const noPointDiv = document.getElementById('noPointSelected');
+        const pointDetailsDiv = document.getElementById('pointDetails');
+        
+        if (noPointDiv && pointDetailsDiv) {
+            noPointDiv.classList.remove('d-none');
+            pointDetailsDiv.classList.add('d-none');
+        }
+        
+        // Очищаем скрытые поля
+        if (document.getElementById('latitudeInput')) {
+            document.getElementById('latitudeInput').value = '';
+        }
+        if (document.getElementById('longitudeInput')) {
+            document.getElementById('longitudeInput').value = '';
+        }
+        if (document.getElementById('mapAddressInput')) {
+            document.getElementById('mapAddressInput').value = '';
+        }
+    }
+
+    // Кнопка "Выбрать на карте"
+    document.getElementById('changeMapPointBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Сохраняем ВСЕ данные формы
+        const formData = new FormData(document.getElementById('createEventForm'));
+        const formDataObj = Object.fromEntries(formData.entries());
+        
+        // Важно: сохраняем текущий выбранный тип места!
+        formDataObj.location_type = document.querySelector('input[name="location_type"]:checked').value;
+        
+        console.log('Сохраненные данные формы:', formDataObj);
+        localStorage.setItem('eventFormDraft', JSON.stringify(formDataObj));
+        localStorage.setItem('selectingMapPoint', 'true');
+        
+        // SweetAlert2 подтверждение
+        Swal.fire({
+            title: 'Переход к карте',
+            html: `<div class="text-start">
+                <p>Вы будете перенаправлены на карту для выбора места проведения.</p>
+                <p class="text-muted small mt-2">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Не забудьте <strong>нажать на карте</strong> чтобы выбрать точку!
+                </p>
+            </div>`,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: '<i class="bi bi-map me-1"></i>Перейти к карте',
+            cancelButtonText: '<i class="bi bi-x-circle me-1"></i>Отмена',
+            reverseButtons: true,
+            customClass: {
+                popup: 'rounded-3 border-0 shadow-lg',
+                confirmButton: 'btn btn-primary px-4',
+                cancelButton: 'btn btn-secondary px-4'
+            },
+            buttonsStyling: false
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{% url 'map' %}?return_to=create_event";
+            }
+        });
+    });
+
+    // Загрузка черновика формы при возврате с карты
+    const selectingMapPoint = localStorage.getItem('selectingMapPoint');
+    const eventFormDraft = localStorage.getItem('eventFormDraft');
+    
+    if (selectingMapPoint === 'true' && eventFormDraft) {
+        try {
+            const draftData = JSON.parse(eventFormDraft);
+            console.log('Загружаем черновик с карты:', draftData);
+            
+            // Заполняем поля формы
+            Object.keys(draftData).forEach(key => {
+                const element = document.querySelector(`[name="${key}"]`);
+                if (element) {
+                    if (element.type === 'radio') {
+                        if (element.value === draftData[key]) {
+                            element.checked = true;
+                        }
+                    } else if (element.type === 'checkbox') {
+                        element.checked = draftData[key] === 'on';
+                    } else {
+                        element.value = draftData[key] || '';
+                    }
+                }
+            });
+            
+            // ПРИНУДИТЕЛЬНО устанавливаем тип места на "точка на карте"
+            const mapRadio = document.querySelector('input[name="location_type"][value="map"]');
+            if (mapRadio) {
+                mapRadio.checked = true;
+            }
+            
+            // Обновляем видимость полей
+            updateLocationFields();
+            
+            // Очищаем флаги
+            localStorage.removeItem('selectingMapPoint');
+            localStorage.removeItem('eventFormDraft');
+            
+            // Показываем уведомление
+            Swal.fire({
+                icon: 'success',
+                title: 'Точка на карте выбрана!',
+                html: `<div class="text-start">
+                    <p>Место проведения успешно выбрано на карте.</p>
+                    <p class="small text-muted">
+                        <i class="bi bi-check-circle me-1"></i>
+                        Тип места установлен: <strong>Точка на карте</strong>
+                    </p>
+                </div>`,
+                showConfirmButton: false,
+                timer: 3000,
+                position: 'top-end',
+                toast: true
+            });
+            
+        } catch (e) {
+            console.error('Ошибка загрузки черновика:', e);
+            localStorage.removeItem('selectingMapPoint');
+            localStorage.removeItem('eventFormDraft');
+        }
+    } else if (eventFormDraft && !selectingMapPoint) {
+        // Просто восстановление черновика (не с карты)
+        try {
+            const draftData = JSON.parse(eventFormDraft);
+            Object.keys(draftData).forEach(key => {
+                const element = document.querySelector(`[name="${key}"]`);
+                if (element) {
+                    if (element.type === 'radio' && element.value === draftData[key]) {
+                        element.checked = true;
+                    } else if (element.type === 'checkbox') {
+                        element.checked = draftData[key] === 'on';
+                    } else if (element.type !== 'radio') {
+                        element.value = draftData[key] || '';
+                    }
+                }
+            });
+            updateLocationFields();
+            localStorage.removeItem('eventFormDraft');
+        } catch (e) {
+            console.error('Ошибка загрузки черновика:', e);
+        }
+    }
+
+    // Проверяем точку при загрузке
+    updateLocationFields();
+
+    // Обработка отправки формы с SweetAlert2
+    document.getElementById('createEventForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        console.log('=== ПЫТАЕМСЯ СОЗДАТЬ МЕРОПРИЯТИЕ ===');
+
+        // Собираем данные формы
+        const formData = new FormData(this);
+        const formDataObj = Object.fromEntries(formData.entries());
+
+        // Валидация с SweetAlert2
+        const locationType = formDataObj.location_type;
+
+        if (locationType === 'address' && !formDataObj.address?.trim()) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Введите адрес',
+                text: 'Пожалуйста, укажите адрес мероприятия',
+                confirmButtonText: 'Хорошо'
+            });
+            return;
+        }
+
+        if (locationType === 'online' && !formDataObj.online_link?.trim()) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Введите онлайн-ссылку',
+                text: 'Пожалуйста, укажите ссылку для онлайн-подключения',
+                confirmButtonText: 'Хорошо'
+            });
+            return;
+        }
+
+        if (locationType === 'map') {
+            // Для карты проверяем координаты
+            const latitude = document.getElementById('latitudeInput').value;
+            const longitude = document.getElementById('longitudeInput').value;
+            
+            if (!latitude || !longitude) {
+                // Проверяем сохраненную точку в localStorage
+                const savedPoint = localStorage.getItem('selectedMapPoint');
+                if (savedPoint) {
+                    try {
+                        const pointData = JSON.parse(savedPoint);
+                        if (pointData.coordinates) {
+                            // Автоматически заполняем поля
+                            document.getElementById('latitudeInput').value = pointData.coordinates[0];
+                            document.getElementById('longitudeInput').value = pointData.coordinates[1];
+                            document.getElementById('mapAddressInput').value = pointData.address;
+                            
+                            // Обновляем formDataObj
+                            formDataObj.latitude = pointData.coordinates[0];
+                            formDataObj.longitude = pointData.coordinates[1];
+                            formDataObj.map_address = pointData.address;
+                        }
+                    } catch (e) {
+                        console.error('Ошибка загрузки точки:', e);
+                    }
+                }
+                
+                // Проверяем еще раз
+                if (!formDataObj.latitude || !formDataObj.longitude) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Выберите точку на карте',
+                        html: `<div class="text-start">
+                            <p>Для типа места "Точка на карте" необходимо выбрать точку на карте.</p>
+                            <p class="text-muted small mt-2">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Нажмите кнопку "Выбрать на карте" чтобы выбрать место
+                            </p>
+                        </div>`,
+                        confirmButtonText: '<i class="bi bi-map me-1"></i>Выбрать на карте',
+                        showCancelButton: true,
+                        cancelButtonText: 'Отмена'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            localStorage.setItem('eventFormDraft', JSON.stringify(formDataObj));
+                            localStorage.setItem('selectingMapPoint', 'true');
+                            window.location.href = "{% url 'map' %}";
+                        }
+                    });
+                    return;
+                }
+            }
+        }
+
+        // Подтверждение создания мероприятия
+        Swal.fire({
+            title: 'Создать мероприятие?',
+            html: `<div class="text-start">
+                <p>Вы уверены, что хотите создать мероприятие <strong>"${formDataObj.event_name}"</strong>?</p>
+                <div class="mt-3">
+                    <p class="mb-1"><i class="bi bi-calendar me-2"></i><strong>Дата:</strong> ${formDataObj.start_datetime}</p>
+                    <p class="mb-1"><i class="bi bi-geo-alt me-2"></i><strong>Место:</strong> ${getLocationDisplay(formDataObj, locationType)}</p>
+                </div>
+            </div>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#0d6efd',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="bi bi-check-lg me-1"></i>Да, создать',
+            cancelButtonText: '<i class="bi bi-x-circle me-1"></i>Отмена',
+            reverseButtons: true,
+            customClass: {
+                popup: 'rounded-3 border-0 shadow-lg',
+                confirmButton: 'btn btn-primary px-4',
+                cancelButton: 'btn btn-secondary px-4'
+            },
+            buttonsStyling: false,
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                return createEventOnServer(formDataObj);
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            console.log('Результат SweetAlert:', result);
+            
+            if (result.isConfirmed && result.value) {
+                console.log('Данные ответа:', result.value);
+                
+                if (result.value.status === 'success') {
+                    // Успешное создание
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Успешно создано!',
+                        text: result.value.message,
+                        showConfirmButton: false,
+                        timer: 1500,
+                        timerProgressBar: true,
+                        willClose: () => {
+                            // Переходим на страницу мероприятий
+                            console.log('Выполняю редирект на мои мероприятия');
+                            window.location.href = "{% url 'my_events' %}";
+                        }
+                    });
+                } else {
+                    // Ошибка при создании
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Ошибка создания',
+                        html: `<div class="text-start">
+                            <p class="mb-3">${result.value.message || 'Произошла ошибка'}</p>
+                            ${result.value.errors ? 
+                                `<div class="alert alert-warning mt-2 p-3 small">
+                                    <strong class="mb-2 d-block">Детали ошибок:</strong>
+                                    ${Object.entries(result.value.errors).map(([field, msgs]) => 
+                                        `<div class="mb-1">• <strong>${field}:</strong> ${Array.isArray(msgs) ? msgs.join(', ') : msgs}</div>`
+                                    ).join('')}
+                                </div>` : ''
+                            }
+                        </div>`,
+                        confirmButtonText: 'Понятно',
+                        customClass: {
+                            popup: 'rounded-3'
+                        }
+                    });
+                }
+            } else if (result.dismiss === Swal.DismissReason.cancel) {
+                console.log('Создание отменено пользователем');
+            }
+        });
+
+        function getLocationDisplay(data, type) {
+            switch(type) {
+                case 'address':
+                    return data.address || 'Адрес не указан';
+                case 'online':
+                    return `<a href="${data.online_link}" target="_blank">${data.online_link}</a>`;
+                case 'map':
+                    const lat = document.getElementById('latitudeInput')?.value;
+                    const lng = document.getElementById('longitudeInput')?.value;
+                    return lat && lng ? 'Точка на карте выбрана' : 'Точка не выбрана';
+                default:
+                    return 'Не указано';
+            }
+        }
+    });
+
+    // Функция отправки данных на сервер (ОБНОВЛЕНА!)
+    async function createEventOnServer(formData) {
+        try {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                             document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+
+            // ПРАВИЛЬНО готовим данные для отправки
+            const locationType = formData.location_type;
+            
+            const eventData = {
+                title: formData.event_name,
+                description: formData.description || '',
+                event_type: formData.event_type || 'meeting',
+                start_datetime: formData.start_datetime,
+                end_datetime: formData.end_datetime || null,
+                location_type: locationType,
+                address: locationType === 'address' ? formData.address : '',
+                online_link: locationType === 'online' ? formData.online_link : '',
+                latitude: locationType === 'map' ? formData.latitude || null : null,
+                longitude: locationType === 'map' ? formData.longitude || null : null
+            };
+
+            // Для карты: если нет прямых данных, берем из hidden полей
+            if (locationType === 'map' && (!eventData.latitude || !eventData.longitude)) {
+                eventData.latitude = document.getElementById('latitudeInput')?.value || null;
+                eventData.longitude = document.getElementById('longitudeInput')?.value || null;
+                eventData.address = document.getElementById('mapAddressInput')?.value || '';
+            }
+
+            console.log('Данные для отправки на сервер:', eventData);
+
+            const response = await fetch('/trips/api/events/create/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(eventData)
+            });
+
+            const responseText = await response.text();
+            console.log('Ответ сервера (текст):', responseText);
+            
+            let data;
+            try {
+                data = JSON.parse(responseText);
+                console.log('Ответ сервера (JSON):', data);
+            } catch (parseError) {
+                console.error('Ошибка парсинга JSON:', parseError);
+                return {
+                    status: 'error',
+                    message: 'Ошибка ответа сервера'
+                };
+            }
+
+            if (data.status === 'success') {
+                // Очищаем все сохраненные данные
+                localStorage.removeItem('selectedMapPoint');
+                localStorage.removeItem('eventFormDraft');
+                localStorage.removeItem('selectingMapPoint');
+                
+                return {
+                    status: 'success',
+                    message: data.message,
+                    event_id: data.event_id,
+                    user: data.user
+                };
+            } else {
+                return {
+                    status: 'error',
+                    message: data.message || 'Ошибка при создании',
+                    errors: data.errors || {}
+                };
+            }
+        } catch (error) {
+            console.error('Ошибка при отправке:', error);
+            return {
+                status: 'error',
+                message: 'Сетевая ошибка: ' + error.message
+            };
+        }
+    }
+
+    // Остальные обработчики (уведомления, отмена) остаются без изменений
+    // ... (твой код для уведомлений и кнопки отмена)
+});
+</script>
+    {% block extra_css %}
+<style>
+/* Стили для активной ссылки в сайдбаре */
+.nav-link.active {
+    background-color: #e7f1ff;
+    border-left: 3px solid #0d6efd;
+    color: #0d6efd !important;
+    font-weight: 500;
+}
+
+.nav-link {
+    color: #495057;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 0.25rem;
+    transition: all 0.2s;
+}
+
+.nav-link:hover {
+    background-color: #f8f9fa;
+    color: #0d6efd;
+}
+
+/* Аватарки */
+.avatar {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: bold;
+}
+
+/* Для высоты сайдбара */
+.min-vh-100 {
+    min-height: 100vh;
+}
+</style>
+{% endblock %}
+{% endblock %}

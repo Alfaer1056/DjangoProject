@@ -1,0 +1,582 @@
+{% extends 'base.html' %}
+
+{% block title %}Мои мероприятия{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Левый сайдбар -->
+        <div class="col-lg-2 col-md-3 sidebar bg-light border-end">
+            <div class="profile-section p-3 border-bottom">
+                <div class="d-flex align-items-center">
+                    <div class="avatar me-3">
+                        <i class="bi bi-person-circle fs-2 text-primary"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold">{{ user.username }}</h6>
+                        <small class="text-muted">{{ user.email|default:"Email не указан" }}</small>
+                    </div>
+                </div>
+                <a href="{% url 'profile' %}" class="btn btn-sm btn-outline-primary w-100 mt-3">
+                    <i class="bi bi-gear me-1"></i> Профиль
+                </a>
+            </div>
+
+            <nav class="nav flex-column p-3">
+    <a class="nav-link" href="{% url 'main' %}">
+        <i class="bi bi-house me-2"></i> Главная
+    </a>
+    <a class="nav-link active" href="{% url 'my_events' %}">
+        <i class="bi bi-calendar-event me-2"></i> Мои мероприятия
+    </a>
+    <a class="nav-link" href="{% url 'create_event' %}">
+        <i class="bi bi-plus-circle me-2"></i> Создать мероприятие
+    </a>
+    <a class="nav-link" href="{% url 'calendar' %}">
+        <i class="bi bi-calendar-week me-2"></i> Календарь
+    </a>
+    <a class="nav-link" href="{% url 'friends' %}">
+        <i class="bi bi-people me-2"></i> Друзья
+    </a>
+    <a class="nav-link" href="{% url 'map' %}">
+        <i class="bi bi-map me-2"></i> Карта
+    </a>
+    <a class="nav-link" href="{% url 'settings' %}">
+        <i class="bi bi-sliders me-2"></i> Настройки
+    </a>
+</nav>
+        </div>
+
+        <!-- Основной контент -->
+        <div class="col-lg-10 col-md-9 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 fw-bold mb-0">
+                    <i class="bi bi-calendar-event me-2"></i>Мои мероприятия
+                </h1>
+                <div>
+                    <button type="button" class="btn btn-outline-secondary me-2" id="notificationsBtn">
+                        <i class="bi bi-bell"></i>
+                        <span class="badge bg-danger rounded-pill">3</span>
+                    </button>
+                    <a href="{% url 'create_event' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-lg me-1"></i> Создать новое
+                    </a>
+                </div>
+            </div>
+            <!-- Фильтры -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <select class="form-select">
+                                <option>Все мероприятия</option>
+                                <option>Активные</option>
+                                <option>Завершенные</option>
+                                <option>Запланированные</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="date" class="form-control" placeholder="Дата от">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="date" class="form-control" placeholder="Дата до">
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-primary w-100">Применить</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<!-- Список мероприятий -->
+<div class="row" id="eventsContainer">
+<div class="col-12 mb-3">
+        <div class="alert alert-warning">
+            <i class="bi bi-bug me-2"></i>
+            Отладка: переданных мероприятий = {{ events|length }}<br>
+            Пользователь: {{ user.username }}
+        </div>
+    </div>
+    {% if events %}
+        {% for event in events %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="card-title fw-bold mb-0">{{ event.title }}</h5>
+                        <span class="badge bg-primary">Активно</span>
+                    </div>
+                    <p class="card-text text-muted mb-3">
+                        {{ event.description|truncatechars:100|default:"Описание отсутствует" }}
+                    </p>
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="bi bi-calendar me-1"></i>
+                            {{ event.start_datetime|date:"d.m.Y" }}, {{ event.start_datetime|time:"H:i" }}
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="bi bi-geo-alt me-1"></i>
+                            {{ event.get_location_display|truncatechars:30 }}
+                        </small>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'event_detail' event.id %}" class="btn btn-sm btn-outline-primary">
+                            Подробнее
+                        </a>
+                        <form method="post" action="{% url 'delete_event' event.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                    onclick="return confirm('Удалить мероприятие?')">
+                                Удалить
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-0 pt-0">
+                    <small class="text-muted">
+                        Создано: {{ event.created_at|date:"d.m.Y H:i" }}
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                У вас пока нет мероприятий.
+                <a href="{% url 'create_event' %}" class="alert-link">Создайте первое мероприятие</a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Показываем сообщение о загрузке
+    const loadingAlert = document.getElementById('loadingEvents');
+    const eventsContainer = document.getElementById('eventsContainer');
+    
+    // Загружаем мероприятия через AJAX
+    fetch('/trips/api/events/my/')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Данные с сервера:', data);
+            
+            // Убираем сообщение о загрузке
+            if (loadingAlert) {
+                loadingAlert.remove();
+            }
+            
+            if (data.status === 'success' && data.events && data.events.length > 0) {
+                renderEvents(data.events);
+            } else {
+                // Нет мероприятий
+                eventsContainer.innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            У вас пока нет мероприятий. 
+                            <a href="/events/create/" class="alert-link">Создайте первое мероприятие</a>
+                        </div>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки мероприятий:', error);
+            
+            // Убираем сообщение о загрузке
+            if (loadingAlert) {
+                loadingAlert.remove();
+            }
+            
+            // Показываем сообщение об ошибке
+            eventsContainer.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Не удалось загрузить мероприятия. 
+                        <button onclick="location.reload()" class="btn btn-sm btn-outline-primary ms-2">
+                            <i class="bi bi-arrow-clockwise"></i> Обновить
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Показываем тестовые мероприятия при ошибке
+            showTestEvents();
+        });
+});
+
+// Функция рендеринга мероприятий
+function renderEvents(events) {
+    const eventsContainer = document.getElementById('eventsContainer');
+    let eventsHTML = '';
+    
+    events.forEach(event => {
+        const eventDate = event.date || 'Дата не указана';
+        const eventTime = event.time || 'Время не указано';
+        const eventAddress = event.address || 'Адрес не указан';
+        const eventDescription = event.description || 'Описание отсутствует';
+        const eventTitle = escapeHtml(event.title);
+        const eventType = escapeHtml(event.type || 'Встреча');
+        
+        eventsHTML += `
+        <div class="col-md-6 col-lg-4 mb-4" id="event-${event.id}">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="card-title fw-bold mb-0">${eventTitle}</h5>
+                        <span class="badge bg-primary">${eventType}</span>
+                    </div>
+                    <p class="card-text text-muted mb-3">
+                        ${escapeHtml(eventDescription)}
+                    </p>
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="bi bi-calendar me-1"></i> ${eventDate}, ${eventTime}
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="bi bi-geo-alt me-1"></i> ${escapeHtml(eventAddress)}
+                        </small>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="/events/${event.id}/" class="btn btn-sm btn-outline-primary">
+                            Подробнее
+                        </a>
+                        <button class="btn btn-sm btn-outline-danger delete-event-btn" 
+                                data-event-id="${event.id}"
+                                data-event-title="${eventTitle}">
+                            Удалить
+                        </button>
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-0 pt-0">
+                    <small class="text-muted">
+                        Создано: ${event.created_at || 'Неизвестно'}
+                    </small>
+                </div>
+            </div>
+        </div>
+        `;
+    });
+    
+    eventsContainer.innerHTML = eventsHTML;
+    
+    // Добавляем обработчики для кнопок удаления через SweetAlert2
+    addDeleteEventListeners();
+}
+
+// Обработчик удаления с SweetAlert2
+function addDeleteEventListeners() {
+    document.addEventListener('click', function(e) {
+        const deleteBtn = e.target.closest('.delete-event-btn');
+        if (deleteBtn) {
+            const eventId = deleteBtn.getAttribute('data-event-id');
+            const eventTitle = deleteBtn.getAttribute('data-event-title') || 'мероприятие';
+            
+            // SweetAlert2 модальное окно
+            Swal.fire({
+                title: 'Удалить мероприятие?',
+                html: `<div class="text-start">
+                    <p>Вы уверены, что хотите удалить мероприятие <strong>"${eventTitle}"</strong>?</p>
+                    <p class="text-muted small mt-2"><i class="bi bi-exclamation-triangle me-1"></i>Это действие нельзя отменить.</p>
+                </div>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="bi bi-trash me-1"></i>Да, удалить',
+                cancelButtonText: '<i class="bi bi-x-circle me-1"></i>Отмена',
+                reverseButtons: true,
+                customClass: {
+                    popup: 'rounded-3 border-0 shadow-lg',
+                    confirmButton: 'btn btn-danger px-4',
+                    cancelButton: 'btn btn-secondary px-4'
+                },
+                buttonsStyling: false,
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return deleteEvent(eventId, deleteBtn);
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            });
+        }
+    });
+}
+
+// Функция удаления возвращает Promise для SweetAlert
+function deleteEvent(eventId, button) {
+    return new Promise((resolve, reject) => {
+        // Показываем индикатор загрузки на кнопке
+        const originalText = button.innerHTML;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        button.disabled = true;
+        
+        // Получаем CSRF токен
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                         document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+        
+        console.log('Удаляю мероприятие ID:', eventId);
+        
+        // Отправляем запрос на удаление
+        fetch(`/events/${eventId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            console.log('Статус ответа:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Ответ сервера:', data);
+            
+            if (data.status === 'success') {
+                // Плавно скрываем и удаляем карточку
+                const card = document.getElementById(`event-${eventId}`);
+                if (card) {
+                    card.style.transition = 'opacity 0.3s, transform 0.3s';
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateX(20px)';
+                    
+                    setTimeout(() => {
+                        card.remove();
+                        checkIfNoEvents();
+                        
+                        // Показываем уведомление об успехе
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Удалено!',
+                            text: data.message,
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000,
+                            timerProgressBar: true,
+                            customClass: {
+                                popup: 'rounded-3'
+                            }
+                        });
+                    }, 300);
+                }
+                resolve(data);
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Ошибка',
+                    text: data.message,
+                    customClass: {
+                        popup: 'rounded-3'
+                    }
+                });
+                button.innerHTML = originalText;
+                button.disabled = false;
+                reject(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка удаления:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Ошибка',
+                text: 'Не удалось удалить мероприятие',
+                customClass: {
+                    popup: 'rounded-3'
+                }
+            });
+            button.innerHTML = originalText;
+            button.disabled = false;
+            reject(error);
+        });
+    });
+}
+
+// Тестовые мероприятия с SweetAlert2
+function showTestEvents() {
+    const eventsContainer = document.getElementById('eventsContainer');
+    
+    const testEvents = [
+        {
+            id: 1,
+            title: "Тестовая встреча",
+            type: "Встреча",
+            description: "Это тестовое мероприятие для демонстрации",
+            date: "15.12.2024",
+            time: "18:00",
+            address: "Москва, Тестовая улица",
+            created_at: "07.01.2025 10:00"
+        },
+        {
+            id: 2,
+            title: "Тестовый корпоратив",
+            type: "Вечеринка",
+            description: "Тестовое корпоративное мероприятие",
+            date: "20.12.2024",
+            time: "19:00",
+            address: "Санкт-Петербург, Тестовый проспект",
+            created_at: "07.01.2025 11:00"
+        }
+    ];
+    
+    let eventsHTML = '';
+    
+    testEvents.forEach(event => {
+        const eventTitle = escapeHtml(event.title);
+        eventsHTML += `
+        <div class="col-md-6 col-lg-4 mb-4" id="test-event-${event.id}">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="card-title fw-bold mb-0">${eventTitle}</h5>
+                        <span class="badge bg-primary">${escapeHtml(event.type)}</span>
+                    </div>
+                    <p class="card-text text-muted mb-3">
+                        ${escapeHtml(event.description)}
+                    </p>
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="bi bi-calendar me-1"></i> ${event.date}, ${event.time}
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="bi bi-geo-alt me-1"></i> ${escapeHtml(event.address)}
+                        </small>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="/events/${event.id}/" class="btn btn-sm btn-outline-primary">
+                            Подробнее
+                        </a>
+                        <button class="btn btn-sm btn-outline-danger delete-test-event-btn" 
+                                data-event-id="${event.id}"
+                                data-event-title="${eventTitle}">
+                            Удалить
+                        </button>
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-0 pt-0">
+                    <small class="text-muted">
+                        Создано: ${event.created_at}
+                    </small>
+                </div>
+            </div>
+        </div>
+        `;
+    });
+    
+    eventsContainer.innerHTML += eventsHTML;
+    
+    // Обработчики для тестовых кнопок удаления
+    document.querySelectorAll('.delete-test-event-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const eventId = this.getAttribute('data-event-id');
+            const eventTitle = this.getAttribute('data-event-title');
+            
+            Swal.fire({
+                title: 'Удалить тестовое мероприятие?',
+                text: `Вы уверены, что хотите удалить "${eventTitle}"?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Удалить',
+                cancelButtonText: 'Отмена'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.closest('.col-md-6').remove();
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Удалено',
+                        text: 'Тестовое мероприятие удалено',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                }
+            });
+        });
+    });
+}
+
+// Функция для проверки пустого списка
+function checkIfNoEvents() {
+    const events = document.querySelectorAll('.col-md-6');
+    const eventsContainer = document.getElementById('eventsContainer') || document.querySelector('.row');
+    
+    if (events.length === 0 && eventsContainer) {
+        eventsContainer.innerHTML = `
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    У вас пока нет мероприятий.
+                    <a href="/events/create/" class="alert-link">Создайте первое мероприятие</a>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Функция для безопасного вывода HTML
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+    {% block extra_css %}
+<style>
+/* Стили для активной ссылки в сайдбаре */
+.nav-link.active {
+    background-color: #e7f1ff;
+    border-left: 3px solid #0d6efd;
+    color: #0d6efd !important;
+    font-weight: 500;
+}
+
+.nav-link {
+    color: #495057;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 0.25rem;
+    transition: all 0.2s;
+}
+
+.nav-link:hover {
+    background-color: #f8f9fa;
+    color: #0d6efd;
+}
+
+/* Аватарки */
+.avatar {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: bold;
+}
+
+/* Для высоты сайдбара */
+.min-vh-100 {
+    min-height: 100vh;
+}
+</style>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,1838 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ event.title|default:"Мероприятие" }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Левый сайдбар -->
+        <div class="col-lg-2 col-md-3 sidebar bg-light border-end">
+            <div class="profile-section p-3 border-bottom">
+                <div class="d-flex align-items-center">
+                    <div class="avatar me-3">
+                        <i class="bi bi-person-circle fs-2 text-primary"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold">{{ user.username }}</h6>
+                        <small class="text-muted">{{ user.email|default:"Email не указан" }}</small>
+                    </div>
+                </div>
+                <a href="{% url 'profile' %}" class="btn btn-sm btn-outline-primary w-100 mt-3">
+                    <i class="bi bi-gear me-1"></i> Профиль
+                </a>
+            </div>
+
+            <nav class="nav flex-column p-3">
+                <a class="nav-link" href="{% url 'main' %}">
+                    <i class="bi bi-house me-2"></i> Главная
+                </a>
+                <a class="nav-link" href="{% url 'my_events' %}">
+                    <i class="bi bi-calendar-event me-2"></i> Мои мероприятия
+                </a>
+                <a class="nav-link" href="{% url 'create_event' %}">
+                    <i class="bi bi-plus-circle me-2"></i> Создать мероприятие
+                </a>
+                <a class="nav-link" href="{% url 'calendar' %}">
+                    <i class="bi bi-calendar-week me-2"></i> Календарь
+                </a>
+                <a class="nav-link" href="{% url 'friends' %}">
+                    <i class="bi bi-people me-2"></i> Друзья
+                </a>
+                <a class="nav-link" href="{% url 'map' %}">
+                    <i class="bi bi-map me-2"></i> Карта
+                </a>
+                <a class="nav-link" href="{% url 'settings' %}">
+                    <i class="bi bi-sliders me-2"></i> Настройки
+                </a>
+            </nav>
+        </div>
+
+        <!-- Основной контент -->
+        <div class="col-lg-10 col-md-9 p-4">
+            <!-- Кнопка назад -->
+            <div class="mb-4">
+                <a href="{% url 'my_events' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Назад к списку
+                </a>
+            </div>
+
+            {% if error %}
+                <!-- Ошибка -->
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    {{ error }}
+                </div>
+                <a href="{% url 'my_events' %}" class="btn btn-primary mt-3">
+                    <i class="bi bi-arrow-left me-1"></i> Вернуться к мероприятиям
+                </a>
+            {% else %}
+                <!-- Вкладки -->
+                <ul class="nav nav-tabs mb-4" id="eventTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="info-tab" data-bs-toggle="tab"
+                                data-bs-target="#info" type="button" role="tab">
+                            <i class="bi bi-info-circle me-2"></i>Информация
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="money-tab" data-bs-toggle="tab"
+                                data-bs-target="#money" type="button" role="tab">
+                            <i class="bi bi-cash-coin me-2"></i>Деньги
+                            <span class="badge bg-danger" id="expensesCount">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tasks-tab" data-bs-toggle="tab"
+                                data-bs-target="#tasks" type="button" role="tab">
+                            <i class="bi bi-list-check me-2"></i>Задачи
+                            <span class="badge bg-warning" id="tasksCount">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="participants-tab" data-bs-toggle="tab"
+                                data-bs-target="#participants" type="button" role="tab">
+                            <i class="bi bi-people me-2"></i>Участники
+                            <span class="badge bg-info" id="participantsCount">1</span>
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Содержимое вкладок -->
+                <div class="tab-content" id="eventTabsContent">
+
+                    <!-- Вкладка 1: Информация -->
+                    <div class="tab-pane fade show active" id="info" role="tabpanel">
+                        {% include 'social/partials/event_info.html' %}
+                    </div>
+
+                    <!-- Вкладка 2: Деньги -->
+                    <div class="tab-pane fade" id="money" role="tabpanel">
+                        {% include 'social/partials/event_money.html' %}
+                    </div>
+
+                    <!-- Вкладка 3: Задачи -->
+                    <div class="tab-pane fade" id="tasks" role="tabpanel">
+                        {% include 'social/partials/event_tasks.html' %}
+                    </div>
+
+                    <!-- Вкладка 4: Участники -->
+                    <div class="tab-pane fade" id="participants" role="tabpanel">
+                        {% include 'social/partials/event_participants.html' %}
+                    </div>
+
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Модальные окна -->
+{% include 'social/partials/modal_add_expense.html' %}
+{% include 'social/partials/modal_add_task.html' %}
+{% include 'social/partials/modal_add_participant.html' %}
+{% include 'social/partials/modal_notification.html' %}
+
+<!-- Подключаем Яндекс Карты (если есть данные) -->
+{% if map_data %}
+<script src="https://api-maps.yandex.ru/2.1/?apikey=ваш_api_ключ&lang=ru_RU"></script>
+{% endif %}
+
+<script>
+// Глобальные переменные
+const EVENT_ID = {{ event.id|default:"0" }};
+const CURRENT_USER_ID = {{ user.id|default:"0" }};
+const CURRENT_USER_NAME = '{{ user.username|escapejs }}';
+
+// ============================================
+// ХРАНИЛИЩЕ ЗАДАЧ
+// ============================================
+
+let tasksData = [];
+
+// Загружаем задачи из localStorage
+function loadStoredTasks() {
+    try {
+        const storedTasks = localStorage.getItem(`event_${EVENT_ID}_tasks`);
+        if (storedTasks) {
+            tasksData = JSON.parse(storedTasks);
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки задач:', error);
+        tasksData = [];
+    }
+}
+
+// Сохраняем задачи
+function saveTasks() {
+    localStorage.setItem(`event_${EVENT_ID}_tasks`, JSON.stringify(tasksData));
+}
+
+// Инициализация
+loadStoredTasks();
+
+// ============================================
+// ХРАНИЛИЩЕ ДАННЫХ (временное, потом заменим на базу)
+// ============================================
+
+let expensesData = []; // Все траты
+let eventBudget = 0;   // Бюджет
+
+// Загружаем данные из localStorage при загрузке
+function loadStoredData() {
+    try {
+        const storedExpenses = localStorage.getItem(`event_${EVENT_ID}_expenses`);
+        const storedBudget = localStorage.getItem(`event_${EVENT_ID}_budget`);
+
+        if (storedExpenses) {
+            expensesData = JSON.parse(storedExpenses);
+        }
+
+        if (storedBudget) {
+            eventBudget = parseInt(storedBudget);
+            document.getElementById('totalBudget').textContent = eventBudget;
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки данных:', error);
+        expensesData = [];
+        eventBudget = 0;
+    }
+}
+
+// Сохраняем данные в localStorage
+function saveExpenses() {
+    localStorage.setItem(`event_${EVENT_ID}_expenses`, JSON.stringify(expensesData));
+}
+
+function saveBudget() {
+    localStorage.setItem(`event_${EVENT_ID}_budget`, eventBudget.toString());
+}
+
+// Инициализация при загрузке
+loadStoredData();
+
+// ============================================
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ============================================
+
+function getCSRFToken() {
+    return document.querySelector('[name="csrfmiddlewaretoken"]')?.value ||
+           document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+}
+
+// ============================================
+// ГЛАВНЫЙ ОБРАБОТЧИК ЗАГРУЗКИ СТРАНИЦЫ
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== СТРАНИЦА МЕРОПРИЯТИЯ ЗАГРУЖЕНА ===');
+    console.log('Event ID:', EVENT_ID);
+    console.log('User:', CURRENT_USER_NAME);
+
+    // 1. Яндекс карты
+    {% if map_data %}
+    ymaps.ready(function() {
+        const map = new ymaps.Map("eventMap", {
+            center: [{{ map_data.lat }}, {{ map_data.lng }}],
+            zoom: 15
+        });
+
+        const placemark = new ymaps.Placemark(
+            [{{ map_data.lat }}, {{ map_data.lng }}],
+            {
+                balloonContent: '{{ map_data.title|escapejs }}',
+                hintContent: '{{ map_data.address|escapejs }}'
+            },
+            {
+                preset: 'islands#redIcon'
+            }
+        );
+
+        map.geoObjects.add(placemark);
+        map.balloon.open([{{ map_data.lat }}, {{ map_data.lng }}], '{{ map_data.title|escapejs }}');
+    });
+    {% endif %}
+
+    // 2. Кнопка удаления мероприятия
+    const deleteBtn = document.getElementById('deleteEventBtn');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function() {
+            const eventTitle = '{{ event.title|escapejs }}';
+
+            Swal.fire({
+                title: 'Удалить мероприятие?',
+                html: `<div class="text-start">
+                    <p>Вы уверены, что хотите удалить мероприятие <strong>"${eventTitle}"</strong>?</p>
+                    <p class="text-muted small mt-2"><i class="bi bi-exclamation-triangle me-1"></i>Это действие нельзя отменить.</p>
+                </div>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="bi bi-trash me-1"></i>Да, удалить',
+                cancelButtonText: '<i class="bi bi-x-circle me-1"></i>Отмена',
+                reverseButtons: true,
+                customClass: {
+                    popup: 'rounded-3 border-0 shadow-lg',
+                    confirmButton: 'btn btn-danger px-4',
+                    cancelButton: 'btn btn-secondary px-4'
+                },
+                buttonsStyling: false,
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return fetch(`/events/${EVENT_ID}/delete/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCSRFToken(),
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status !== 'success') {
+                            throw new Error(data.message);
+                        }
+                        return data;
+                    })
+                    .catch(error => {
+                        Swal.showValidationMessage(`Ошибка: ${error.message}`);
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Удалено!',
+                        text: 'Мероприятие успешно удалено',
+                        showConfirmButton: false,
+                        timer: 1500,
+                        willClose: () => {
+                            window.location.href = "{% url 'my_events' %}";
+                        }
+                    });
+                }
+            });
+        });
+    }
+
+    // 3. Кнопки участников
+    const addParticipantBtn = document.getElementById('addParticipantBtn');
+    if (addParticipantBtn) {
+        addParticipantBtn.addEventListener('click', function() {
+            showAddParticipantModal();
+        });
+    }
+
+    const sendInvitationBtn = document.getElementById('sendInvitationBtn');
+    if (sendInvitationBtn) {
+        sendInvitationBtn.addEventListener('click', function() {
+            sendInvitation();
+        });
+    }
+
+    // 4. Кнопки уведомлений
+    const notificationBtn = document.getElementById('notificationBtn');
+    if (notificationBtn) {
+        notificationBtn.addEventListener('click', function() {
+            showNotificationModal();
+        });
+    }
+
+    const markAllReadBtn = document.getElementById('markAllReadBtn');
+    if (markAllReadBtn) {
+        markAllReadBtn.addEventListener('click', function() {
+            markAllNotificationsAsRead();
+        });
+    }
+
+    const clearNotificationsBtn = document.getElementById('clearNotificationsBtn');
+    if (clearNotificationsBtn) {
+        clearNotificationsBtn.addEventListener('click', function() {
+            clearAllNotifications();
+        });
+    }
+
+    // 5. Инициализация систем
+    initTabs();
+    initMoneySystem();
+    initTasksSystem();
+    initParticipantsSystem();
+    initNotifications();
+});
+
+// ============================================
+// СИСТЕМА ВКЛАДОК
+// ============================================
+
+function initTabs() {
+    console.log('Инициализация вкладок...');
+
+    // Проверяем, есть ли вкладки на странице
+    const eventTabs = document.querySelector('#eventTabs');
+    if (!eventTabs) {
+        console.log('Вкладки не найдены на странице');
+        return;
+    }
+
+    // Используем Bootstrap табы
+    const triggerTabList = document.querySelectorAll('#eventTabs button[data-bs-toggle="tab"]');
+    triggerTabList.forEach(triggerEl => {
+        const tabTrigger = new bootstrap.Tab(triggerEl);
+
+        triggerEl.addEventListener('click', function(event) {
+            event.preventDefault();
+            tabTrigger.show();
+
+            const tabId = this.getAttribute('data-bs-target').substring(1);
+            console.log('Переключились на вкладку:', tabId);
+            loadTabData(tabId);
+        });
+    });
+
+    // Загружаем данные для активной вкладки при загрузке
+    const activeTab = document.querySelector('#eventTabs .nav-link.active');
+    if (activeTab) {
+        const tabId = activeTab.getAttribute('data-bs-target').substring(1);
+        console.log('Активная вкладка при загрузке:', tabId);
+        setTimeout(() => loadTabData(tabId), 300);
+    }
+}
+
+function loadTabData(tabId) {
+    console.log('Загружаем данные для вкладки:', tabId);
+
+    switch(tabId) {
+        case 'money':
+            loadMoneyData();
+            break;
+        case 'tasks':
+            loadTasksData();
+            break;
+        case 'participants':
+            loadParticipantsData();
+            break;
+        default:
+            console.log('Вкладка без специальной загрузки:', tabId);
+    }
+}
+
+// ============================================
+// СИСТЕМА ДЕНЕГ
+// ============================================
+
+function initMoneySystem() {
+    console.log('Инициализация системы денег...');
+    const refreshDebtsBtn = document.getElementById('refreshDebtsBtn');
+if (refreshDebtsBtn) {
+    refreshDebtsBtn.addEventListener('click', function() {
+        calculateDebts();
+        Swal.fire({
+            icon: 'success',
+            title: 'Долги обновлены!',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 1000
+        });
+    });
+}
+
+    // Проверяем существование элементов
+    const addExpenseBtn = document.getElementById('addExpenseBtn');
+    const setBudgetBtn = document.getElementById('setBudgetBtn');
+
+    console.log('Кнопка добавления траты:', addExpenseBtn);
+    console.log('Кнопка установки бюджета:', setBudgetBtn);
+
+    if (addExpenseBtn) {
+        addExpenseBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Клик по добавлению траты');
+            showAddExpenseModal();
+        });
+    }
+
+    if (setBudgetBtn) {
+        setBudgetBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Клик по установке бюджета');
+            setBudget();
+        });
+    }
+}
+
+function loadMoneyData() {
+    console.log('Загружаем финансовые данные', expensesData);
+
+    // Обновляем счетчик
+    const expensesCountBadge = document.getElementById('expensesCountBadge');
+    if (expensesCountBadge) {
+        expensesCountBadge.textContent = expensesData.length;
+    }
+
+    // Заполняем таблицу расходов
+    const tbody = document.getElementById('expensesTableBody');
+    if (!tbody) {
+        console.error('Не найден expensesTableBody!');
+        return;
+    }
+
+    if (expensesData.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                    <i class="bi bi-receipt fs-1"></i>
+                    <p class="mb-0 mt-2">Трат пока нет</p>
+                    <small>Добавьте первую трату</small>
+                </td>
+            </tr>
+        `;
+    } else {
+        let html = '';
+        expensesData.forEach((expense, index) => {
+            // Определяем кто оплатил
+            let paidByName = 'Неизвестно';
+            if (expense.paid_by === CURRENT_USER_ID) {
+                paidByName = 'Вы';
+            } else if (expense.paid_by) {
+                // Здесь будет запрос к базе для получения имени
+                paidByName = `Участник #${expense.paid_by}`;
+            }
+
+            html += `
+                <tr data-expense-id="${expense.id || index}">
+                    <td>${expense.title}</td>
+                    <td><strong>${expense.amount} руб.</strong></td>
+                    <td>${paidByName}</td>
+                    <td>
+                        <small>
+                            ${expense.shares || 'Равные доли'}
+                        </small>
+                    </td>
+                    <td><small>${expense.date || new Date().toLocaleDateString()}</small></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary me-1 edit-expense-btn" data-id="${index}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger delete-expense-btn" data-id="${index}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+
+        // Добавляем обработчики для кнопок редактирования и удаления
+        addExpenseActions();
+    }
+
+    // Обновляем общие суммы
+    updateMoneyTotals();
+
+    // РАССЧИТЫВАЕМ ДОЛГИ
+    calculateDebts();
+}
+
+function updateMoneyTotals() {
+    const totalSpent = expensesData.reduce((sum, exp) => sum + parseInt(exp.amount), 0);
+    const remaining = eventBudget - totalSpent;
+
+    const totalSpentEl = document.getElementById('totalSpent');
+    const remainingBudgetEl = document.getElementById('remainingBudget');
+
+    if (totalSpentEl) totalSpentEl.textContent = totalSpent + ' руб.';
+    if (remainingBudgetEl) remainingBudgetEl.textContent = remaining + ' руб.';
+
+    // Меняем цвет остатка в зависимости от ситуации
+    if (remainingBudgetEl) {
+        if (remaining < 0) {
+            remainingBudgetEl.className = 'text-danger fw-bold';
+        } else if (remaining < eventBudget * 0.3) {
+            remainingBudgetEl.className = 'text-warning fw-bold';
+        } else {
+            remainingBudgetEl.className = 'text-success fw-bold';
+        }
+    }
+}
+
+function showAddExpenseModal(editIndex = null) {
+    console.log('Показываем модальное окно добавления траты');
+
+    const isEditMode = editIndex !== null;
+    const expense = isEditMode ? expensesData[editIndex] : null;
+
+    Swal.fire({
+        title: isEditMode ? 'Редактировать трату' : 'Добавить трату',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">На что потрачено *</label>
+                    <input type="text" id="expenseTitle" class="form-control"
+                           value="${expense ? expense.title : ''}"
+                           placeholder="Например: Билеты в кино, Обед" required>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Сумма (руб) *</label>
+                        <input type="number" id="expenseAmount" class="form-control"
+                               value="${expense ? expense.amount : ''}"
+                               min="1" step="0.01" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Кто оплатил *</label>
+                        <select id="expensePaidBy" class="form-select" required>
+                            <option value="">Выберите участника</option>
+                            <option value="${CURRENT_USER_ID}" ${expense && expense.paid_by == CURRENT_USER_ID ? 'selected' : ''}>
+                                Я (${CURRENT_USER_NAME})
+                            </option>
+                            <!-- Здесь будут другие участники из базы -->
+                            <option value="2" ${expense && expense.paid_by == '2' ? 'selected' : ''}>Алексей</option>
+                            <option value="3" ${expense && expense.paid_by == '3' ? 'selected' : ''}>Мария</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Как разделить (опционально)</label>
+                    <textarea id="expenseShares" class="form-control" rows="2"
+                              placeholder="Например: Я: 500, Алексей: 500, Мария: 500">${expense ? expense.shares || '' : ''}</textarea>
+                    <small class="text-muted">Оставьте пустым для равного разделения</small>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: isEditMode ? 'Сохранить изменения' : 'Добавить трату',
+        cancelButtonText: 'Отмена',
+        focusConfirm: false,
+        preConfirm: () => {
+            const title = document.getElementById('expenseTitle').value.trim();
+            const amount = document.getElementById('expenseAmount').value;
+            const paidBy = document.getElementById('expensePaidBy').value;
+            const shares = document.getElementById('expenseShares').value.trim();
+
+            if (!title) {
+                Swal.showValidationMessage('Введите название траты');
+                return false;
+            }
+
+            if (!amount || amount <= 0) {
+                Swal.showValidationMessage('Введите корректную сумму');
+                return false;
+            }
+
+            if (!paidBy) {
+                Swal.showValidationMessage('Выберите, кто оплатил');
+                return false;
+            }
+
+            return {
+                title,
+                amount: parseFloat(amount),
+                paid_by: paidBy,
+                shares,
+                date: new Date().toLocaleDateString(),
+                id: Date.now() // Уникальный ID
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            if (isEditMode) {
+                updateExpense(editIndex, result.value);
+            } else {
+                addExpense(result.value);
+            }
+        }
+    });
+}
+
+function addExpense(expenseData) {
+    console.log('Добавляем трату:', expenseData);
+
+    // Добавляем ID если его нет
+    if (!expenseData.id) {
+        expenseData.id = Date.now();
+    }
+
+    expensesData.push(expenseData);
+    saveExpenses();
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Трата добавлена!',
+        text: `Трата "${expenseData.title}" на сумму ${expenseData.amount} руб. успешно добавлена`,
+        showConfirmButton: false,
+        timer: 2000,
+        willClose: () => {
+            loadMoneyData();
+            calculateDebts();
+        }
+    });
+}
+
+function updateExpense(index, expenseData) {
+    expensesData[index] = expenseData;
+    saveExpenses();
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Трата обновлена!',
+        showConfirmButton: false,
+        timer: 1500,
+        willClose: () => {
+            loadMoneyData();
+            calculateDebts();
+        }
+    });
+}
+
+function deleteExpense(index) {
+    const expense = expensesData[index];
+
+    Swal.fire({
+        title: 'Удалить трату?',
+        html: `<div class="text-start">
+            <p>Вы уверены, что хотите удалить трату <strong>"${expense.title}"</strong> на сумму ${expense.amount} руб.?</p>
+        </div>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Да, удалить',
+        cancelButtonText: 'Отмена'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            expensesData.splice(index, 1);
+            saveExpenses();
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Трата удалена!',
+                showConfirmButton: false,
+                timer: 1500,
+                willClose: () => {
+                    loadMoneyData();
+                    calculateDebts();
+                }
+            });
+        }
+    });
+}
+
+function addExpenseActions() {
+    // Кнопки редактирования
+    document.querySelectorAll('.edit-expense-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const index = parseInt(this.getAttribute('data-id'));
+            showAddExpenseModal(index);
+        });
+    });
+
+    // Кнопки удаления
+    document.querySelectorAll('.delete-expense-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const index = parseInt(this.getAttribute('data-id'));
+            deleteExpense(index);
+        });
+    });
+}
+
+function setBudget() {
+    console.log('Установка бюджета');
+
+    Swal.fire({
+        title: 'Установить бюджет',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Общий бюджет поездки (руб) *</label>
+                    <input type="number" id="budgetAmount" class="form-control"
+                           value="${eventBudget || ''}"
+                           min="0" step="0.01" required>
+                </div>
+                ${eventBudget ? `
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Текущий бюджет: <strong>${eventBudget} руб.</strong>
+                </div>
+                ` : ''}
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Сохранить',
+        cancelButtonText: 'Отмена',
+        preConfirm: () => {
+            const amount = document.getElementById('budgetAmount').value;
+
+            if (!amount || amount <= 0) {
+                Swal.showValidationMessage('Введите корректную сумму');
+                return false;
+            }
+
+            return parseFloat(amount);
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            eventBudget = result.value;
+            saveBudget();
+
+            const totalBudgetEl = document.getElementById('totalBudget');
+            if (totalBudgetEl) totalBudgetEl.textContent = eventBudget;
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Бюджет сохранен!',
+                text: `Бюджет установлен: ${eventBudget} руб.`,
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000,
+                willClose: () => {
+                    updateMoneyTotals();
+                }
+            });
+        }
+    });
+}
+
+// ============================================
+// СИСТЕМА РАСЧЕТА ДОЛГОВ
+// ============================================
+
+function calculateDebts() {
+    console.log('Рассчитываем долги...');
+    
+    // Если нет трат - нет долгов
+    if (expensesData.length === 0) {
+        updateMyDebtsList([]);
+        updateDebtsSummary([]);
+        return;
+    }
+    
+    // Собираем информацию об участниках
+    const participants = [
+        { id: CURRENT_USER_ID, name: 'Вы' },
+        { id: '2', name: 'Алексей' },
+        { id: '3', name: 'Мария' }
+    ];
+    
+    // Инициализируем балансы
+    let balances = {};
+    participants.forEach(p => {
+        balances[p.id] = {
+            id: p.id,
+            name: p.name,
+            paid: 0,      // Сколько заплатил
+            share: 0,     // Сколько должен был заплатить (его доля)
+            balance: 0    // Разница (положительная = должен получить, отрицательная = должен отдать)
+        };
+    });
+    
+    // Рассчитываем: кто сколько заплатил и сколько должен был заплатить
+    expensesData.forEach(expense => {
+        const amount = parseFloat(expense.amount);
+        const payerId = expense.paid_by;
+        
+        // Увеличиваем сумму оплаченную плательщиком
+        if (balances[payerId]) {
+            balances[payerId].paid += amount;
+        }
+        
+        // Разделяем расход
+        if (expense.shares && expense.shares.trim()) {
+            // Если указано ручное разделение
+            // Пример строки: "Вы: 500, Алексей: 500, Мария: 500"
+            const sharePattern = /([^:]+):\s*([\d.]+)/g;
+            let match;
+            
+            while ((match = sharePattern.exec(expense.shares)) !== null) {
+                const name = match[1].trim();
+                const share = parseFloat(match[2]);
+                const participant = participants.find(p => 
+                    p.name === name || (p.id === CURRENT_USER_ID && name === 'Вы')
+                );
+                
+                if (participant && balances[participant.id]) {
+                    balances[participant.id].share += share;
+                }
+            }
+        } else {
+            // Равное разделение между всеми участниками
+            const sharePerPerson = amount / participants.length;
+            participants.forEach(p => {
+                if (balances[p.id]) {
+                    balances[p.id].share += sharePerPerson;
+                }
+            });
+        }
+    });
+    
+    // Рассчитываем баланс для каждого
+    // БАЛАНС = (Сколько заплатил) - (Сколько должен был заплатить)
+    // Если баланс > 0: переплатил, должен получить деньги
+    // Если баланс < 0: недоплатил, должен отдать деньги
+    Object.keys(balances).forEach(id => {
+        balances[id].balance = balances[id].paid - balances[id].share;
+    });
+    
+    console.log('Балансы участников:', balances);
+    
+    // Находим мои долги
+    const myDebts = [];
+    const myId = CURRENT_USER_ID;
+    const myBalance = balances[myId] ? balances[myId].balance : 0;
+    
+    // Логика:
+    // Если мой баланс < 0: Я НЕДОПЛАТИЛ, должен отдать другим
+    // Если мой баланс > 0: Я ПЕРЕПЛАТИЛ, мне должны другие
+    
+    if (myBalance < 0) {
+        // Я должен отдать деньги
+        // Находим тех, кто переплатил (у них balance > 0)
+        Object.keys(balances).forEach(otherId => {
+            if (otherId !== myId && balances[otherId]) {
+                const otherBalance = balances[otherId].balance;
+                
+                if (otherBalance > 0) {
+                    // Этот участник переплатил, я должен ему
+                    const amount = Math.min(Math.abs(myBalance), otherBalance);
+                    myDebts.push({
+                        to: balances[otherId].name,
+                        amount: amount.toFixed(2),
+                        type: 'owe' // Я должен отдать
+                    });
+                }
+            }
+        });
+    } else if (myBalance > 0) {
+        // Мне должны деньги
+        // Находим тех, кто недоплатил (у них balance < 0)
+        Object.keys(balances).forEach(otherId => {
+            if (otherId !== myId && balances[otherId]) {
+                const otherBalance = balances[otherId].balance;
+                
+                if (otherBalance < 0) {
+                    // Этот участник недоплатил, должен мне
+                    const amount = Math.min(myBalance, Math.abs(otherBalance));
+                    myDebts.push({
+                        from: balances[otherId].name,
+                        amount: amount.toFixed(2),
+                        type: 'owed' // Мне должны
+                    });
+                }
+            }
+        });
+    }
+    
+    console.log('Мои долги:', myDebts);
+    
+    // Обновляем отображение
+    updateMyDebtsList(myDebts, myBalance);
+    updateDebtsSummary(balances);
+    
+    return balances;
+}
+
+function updateMyDebtsList(myDebts, myBalance = 0) {
+    const container = document.getElementById('myDebtsList');
+    if (!container) return;
+    
+    // Определяем общий статус
+    let statusMessage = '';
+    let statusIcon = 'bi-check-circle';
+    let statusColor = 'success';
+    
+    if (myBalance < 0) {
+        statusMessage = `Вы должны: ${Math.abs(myBalance).toFixed(2)} руб.`;
+        statusIcon = 'bi-exclamation-triangle';
+        statusColor = 'danger';
+    } else if (myBalance > 0) {
+        statusMessage = `Вам должны: ${myBalance.toFixed(2)} руб.`;
+        statusIcon = 'bi-info-circle';
+        statusColor = 'info';
+    }
+    
+    if (myDebts.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-3">
+                <i class="bi ${statusIcon} fs-1 text-${statusColor}"></i>
+                <p class="mb-0 mt-2">${myBalance === 0 ? 'Долгов нет' : statusMessage}</p>
+                <small class="text-muted">${myBalance === 0 ? 'Все расчеты сведены' : 'Подробности ниже'}</small>
+            </div>
+        `;
+    } else {
+        let html = '<div class="list-group list-group-flush">';
+        
+        // Показываем общий статус сверху
+        if (myBalance !== 0) {
+            html += `
+                <div class="list-group-item border-0 py-2 bg-light rounded mb-2">
+                    <div class="text-center">
+                        <i class="bi ${statusIcon} me-2 text-${statusColor}"></i>
+                        <strong class="text-${statusColor}">${statusMessage}</strong>
+                    </div>
+                </div>
+            `;
+        }
+        
+        myDebts.forEach((debt, index) => {
+            if (debt.type === 'owe') {
+                // Я должен отдать
+                html += `
+                    <div class="list-group-item border-0 py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-arrow-up-right text-danger me-2"></i>
+                                <span>Вы должны <strong>${debt.to}</strong></span>
+                            </div>
+                            <div>
+                                <span class="text-danger fw-bold">${debt.amount} руб.</span>
+                            </div>
+                        </div>
+                        <small class="text-muted d-block mt-1">
+                            <i class="bi bi-cash-coin me-1"></i>
+                            Верните эту сумму участнику
+                        </small>
+                    </div>
+                `;
+            } else if (debt.type === 'owed') {
+                // Мне должны
+                html += `
+                    <div class="list-group-item border-0 py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-arrow-down-left text-success me-2"></i>
+                                <span><strong>${debt.from}</strong> должен вам</span>
+                            </div>
+                            <div>
+                                <span class="text-success fw-bold">${debt.amount} руб.</span>
+                            </div>
+                        </div>
+                        <small class="text-muted d-block mt-1">
+                            <i class="bi bi-hourglass me-1"></i>
+                            Ожидает оплаты от участника
+                        </small>
+                    </div>
+                `;
+            }
+        });
+        
+        html += '</div>';
+        
+        // Добавляем кнопку пересчета
+        html += `
+            <div class="mt-3 pt-3 border-top">
+                <button class="btn btn-sm btn-outline-primary w-100" id="recalculateDebtsBtn">
+                    <i class="bi bi-calculator me-1"></i> Пересчитать долги
+                </button>
+            </div>
+        `;
+        
+        container.innerHTML = html;
+        
+        // Обработчик кнопки
+        const recalcBtn = document.getElementById('recalculateDebtsBtn');
+        if (recalcBtn) {
+            recalcBtn.addEventListener('click', function() {
+                calculateDebts();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Долги пересчитаны!',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 1000
+                });
+            });
+        }
+    }
+}
+
+function updateDebtsSummary(balances) {
+    const container = document.getElementById('debtsList');
+    if (!container) return;
+    
+    // Считаем общую статистику
+    let totalOwed = 0;    // Сколько должны мне
+    let totalOwe = 0;     // Сколько я должен
+    const myId = CURRENT_USER_ID;
+    const myBalance = balances[myId] ? balances[myId].balance : 0;
+    
+    // Логика:
+    // myBalance > 0: мне должны -> totalOwed
+    // myBalance < 0: я должен -> totalOwe
+    if (myBalance > 0) {
+        totalOwed = myBalance;
+    } else if (myBalance < 0) {
+        totalOwe = Math.abs(myBalance);
+    }
+    
+    if (totalOwed === 0 && totalOwe === 0) {
+        container.innerHTML = `
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle me-2"></i>
+                <strong>Все расчеты сведены!</strong>
+                <p class="mb-0 small">Долгов нет ни у кого из участников</p>
+            </div>
+        `;
+    } else {
+        let summaryHtml = '';
+        
+        if (totalOwe > 0) {
+            summaryHtml += `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Вы должны: ${totalOwe.toFixed(2)} руб.</strong>
+                    <p class="mb-0 small">Верните деньги участникам, которые платили за вас</p>
+                </div>
+            `;
+        }
+        
+        if (totalOwed > 0) {
+            summaryHtml += `
+                <div class="alert alert-success">
+                    <i class="bi bi-cash-stack me-2"></i>
+                    <strong>Вам должны: ${totalOwed.toFixed(2)} руб.</strong>
+                    <p class="mb-0 small">Участники должны вернуть вам деньги за ваши траты</p>
+                </div>
+            `;
+        }
+        
+        // Добавляем детализированную таблицу с ПРАВИЛЬНОЙ логикой
+        summaryHtml += `
+            <div class="mt-3">
+                <h6 class="fw-bold mb-2">Балансы участников:</h6>
+                <p class="small text-muted mb-3">
+                    <i class="bi bi-info-circle"></i> 
+                    Положительный баланс = переплатил (должны вернуть). 
+                    Отрицательный баланс = недоплатил (должен вернуть).
+                </p>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Участник</th>
+                                <th>Заплатил</th>
+                                <th>Доля</th>
+                                <th>Баланс</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.values(balances).map(balance => {
+                                const isMe = balance.id === myId;
+                                let status = '';
+                                let statusClass = '';
+                                
+                                if (balance.balance > 0) {
+                                    status = '<span class="badge bg-success">Переплатил</span>';
+                                    statusClass = 'table-success';
+                                } else if (balance.balance < 0) {
+                                    status = '<span class="badge bg-danger">Недоплатил</span>';
+                                    statusClass = 'table-danger';
+                                } else {
+                                    status = '<span class="badge bg-secondary">В расчете</span>';
+                                }
+                                
+                                return `
+                                    <tr class="${isMe ? 'table-active ' : ''}${statusClass}">
+                                        <td>
+                                            ${balance.name} 
+                                            ${isMe ? '<span class="badge bg-primary ms-1">Вы</span>' : ''}
+                                        </td>
+                                        <td>${balance.paid.toFixed(2)} руб.</td>
+                                        <td>${balance.share.toFixed(2)} руб.</td>
+                                        <td class="fw-bold ${balance.balance > 0 ? 'text-success' : balance.balance < 0 ? 'text-danger' : ''}">
+                                            ${balance.balance > 0 ? '+' : ''}${balance.balance.toFixed(2)} руб.
+                                        </td>
+                                        <td>${status}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+        
+        container.innerHTML = summaryHtml;
+    }
+}
+
+// ============================================
+// СИСТЕМА ЗАДАЧ (остальные функции остаются без изменений)
+// ============================================
+
+function initTasksSystem() {
+    console.log('Инициализация системы задач...');
+
+    const addTaskBtn = document.getElementById('addTaskBtn');
+    const taskFilter = document.getElementById('taskFilter');
+
+    console.log('Кнопка добавления задачи:', addTaskBtn);
+    console.log('Фильтр задач:', taskFilter);
+
+    if (addTaskBtn) {
+        addTaskBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            showAddTaskModal();
+        });
+    }
+
+    if (taskFilter) {
+        taskFilter.addEventListener('change', function() {
+            filterTasks(this.value);
+        });
+    }
+
+    // Добавляем тестовые данные если их нет
+    if (tasksData.length === 0 && localStorage.getItem(`event_${EVENT_ID}_tasks`) === null) {
+        console.log('Добавляем тестовые задачи...');
+        setTimeout(addTestTasks, 1000);
+    }
+}
+
+
+
+function updateTaskStatistics() {
+    const total = tasksData.length;
+    const todo = tasksData.filter(t => t.status === 'todo').length;
+    const inProgress = tasksData.filter(t => t.status === 'in_progress').length;
+    const done = tasksData.filter(t => t.status === 'done').length;
+    const progress = total > 0 ? Math.round((done / total) * 100) : 0;
+
+    // Обновляем цифры
+    const totalTasksEl = document.getElementById('totalTasks');
+    const todoTasksEl = document.getElementById('todoTasks');
+    const inProgressTasksEl = document.getElementById('inProgressTasks');
+    const doneTasksEl = document.getElementById('doneTasks');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+
+    if (totalTasksEl) totalTasksEl.textContent = total;
+    if (todoTasksEl) todoTasksEl.textContent = todo;
+    if (inProgressTasksEl) inProgressTasksEl.textContent = inProgress;
+    if (doneTasksEl) doneTasksEl.textContent = done;
+
+    if (progressBar) {
+        progressBar.style.width = `${progress}%`;
+        progressBar.className = `progress-bar ${progress === 100 ? 'bg-success' : 'bg-primary'}`;
+    }
+    if (progressText) progressText.textContent = `${progress}% выполнено`;
+}
+
+function showAddTaskModal(editIndex = null) {
+    const isEditMode = editIndex !== null;
+    const task = isEditMode ? tasksData[editIndex] : null;
+
+    // Получаем текущую дату + 3 дня для дефолтного срока
+    const defaultDueDate = new Date();
+    defaultDueDate.setDate(defaultDueDate.getDate() + 3);
+    const formattedDefaultDate = defaultDueDate.toISOString().split('T')[0];
+
+    Swal.fire({
+        title: isEditMode ? 'Редактировать задачу' : 'Добавить задачу',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Название задачи *</label>
+                    <input type="text" id="taskTitle" class="form-control"
+                           value="${task ? task.title : ''}"
+                           placeholder="Например: Купить билеты" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Описание</label>
+                    <textarea id="taskDescription" class="form-control"
+                              rows="3" placeholder="Детали задачи...">${task ? task.description || '' : ''}</textarea>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Назначить на</label>
+                        <select id="taskAssignedTo" class="form-select">
+                            <option value="">Не назначено</option>
+                            <option value="${CURRENT_USER_ID}" ${task && (task.assigned_to == CURRENT_USER_ID || task.assigned_to === 'На себя') ? 'selected' : ''}>
+                                На себя
+                            </option>
+                            <option value="2" ${task && task.assigned_to == '2' ? 'selected' : ''}>Алексей</option>
+                            <option value="3" ${task && task.assigned_to == '3' ? 'selected' : ''}>Мария</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Срок выполнения</label>
+                        <input type="date" id="taskDueDate" class="form-control"
+                               value="${task ? task.due_date || '' : formattedDefaultDate}">
+                    </div>
+                </div>
+                ${isEditMode ? `
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Статус</label>
+                    <select id="taskStatus" class="form-select">
+                        <option value="todo" ${task && task.status === 'todo' ? 'selected' : ''}>К выполнению</option>
+                        <option value="in_progress" ${task && task.status === 'in_progress' ? 'selected' : ''}>В процессе</option>
+                        <option value="done" ${task && task.status === 'done' ? 'selected' : ''}>Выполнено</option>
+                    </select>
+                </div>
+                ` : ''}
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: isEditMode ? 'Сохранить изменения' : 'Добавить задачу',
+        cancelButtonText: 'Отмена',
+        focusConfirm: false,
+        preConfirm: () => {
+            const title = document.getElementById('taskTitle').value.trim();
+
+            if (!title) {
+                Swal.showValidationMessage('Введите название задачи');
+                return false;
+            }
+
+            const description = document.getElementById('taskDescription').value.trim();
+            const assignedTo = document.getElementById('taskAssignedTo').value;
+            const dueDate = document.getElementById('taskDueDate').value;
+            const status = isEditMode ? document.getElementById('taskStatus').value : 'todo';
+
+            return {
+                id: task ? task.id : Date.now(),
+                title,
+                description,
+                assigned_to: assignedTo,
+                due_date: dueDate,
+                status,
+                created_at: task ? task.created_at : new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            if (isEditMode) {
+                updateTask(editIndex, result.value);
+            } else {
+                addTask(result.value);
+            }
+        }
+    });
+}
+
+function addTask(taskData) {
+    console.log('Добавляем задачу:', taskData);
+
+    tasksData.push(taskData);
+    saveTasks();
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Задача добавлена!',
+        text: `Задача "${taskData.title}" успешно создана`,
+        showConfirmButton: false,
+        timer: 2000,
+        willClose: () => {
+            loadTasksData();
+        }
+    });
+}
+
+function updateTask(index, taskData) {
+    tasksData[index] = taskData;
+    saveTasks();
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Задача обновлена!',
+        showConfirmButton: false,
+        timer: 1500,
+        willClose: () => {
+            loadTasksData();
+        }
+    });
+}
+
+function deleteTask(index) {
+    const task = tasksData[index];
+
+    Swal.fire({
+        title: 'Удалить задачу?',
+        html: `<div class="text-start">
+            <p>Вы уверены, что хотите удалить задачу <strong>"${task.title}"</strong>?</p>
+            ${task.status === 'done' ? '<p class="text-success"><i class="bi bi-check-circle me-1"></i>Эта задача уже выполнена</p>' : ''}
+        </div>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Да, удалить',
+        cancelButtonText: 'Отмена'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            tasksData.splice(index, 1);
+            saveTasks();
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Задача удалена!',
+                showConfirmButton: false,
+                timer: 1500,
+                willClose: () => {
+                    loadTasksData();
+                }
+            });
+        }
+    });
+}
+
+function updateTaskStatus(index, newStatus) {
+    tasksData[index].status = newStatus;
+    tasksData[index].updated_at = new Date().toISOString();
+    saveTasks();
+
+    let message = '';
+    switch(newStatus) {
+        case 'todo': message = 'Задача возвращена в список'; break;
+        case 'in_progress': message = 'Задача начата'; break;
+        case 'done': message = 'Задача выполнена!'; break;
+    }
+
+    Swal.fire({
+        icon: 'success',
+        title: message,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 1500,
+        willClose: () => {
+            loadTasksData();
+        }
+    });
+}
+
+function completeTask(index) {
+    if (tasksData[index].status === 'done') {
+        Swal.fire({
+            title: 'Задача уже выполнена',
+            text: 'Эта задача уже отмечена как выполненная',
+            icon: 'info'
+        });
+        return;
+    }
+
+    Swal.fire({
+        title: 'Отметить как выполненную?',
+        html: `<div class="text-start">
+            <p>Вы уверены, что хотите отметить задачу <strong>"${tasksData[index].title}"</strong> как выполненную?</p>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="confirmCompletion">
+                <label class="form-check-label" for="confirmCompletion">
+                    Я подтверждаю выполнение задачи
+                </label>
+            </div>
+        </div>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Да, выполнено',
+        cancelButtonText: 'Отмена',
+        preConfirm: () => {
+            const isConfirmed = document.getElementById('confirmCompletion').checked;
+            if (!isConfirmed) {
+                Swal.showValidationMessage('Подтвердите выполнение задачи');
+                return false;
+            }
+            return true;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            updateTaskStatus(index, 'done');
+        }
+    });
+}
+
+function addTaskActions() {
+    // Чекбоксы для отметки выполнения
+    document.querySelectorAll('.task-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const index = parseInt(this.getAttribute('data-task-index'));
+            const newStatus = this.checked ? 'done' : 'todo';
+            updateTaskStatus(index, newStatus);
+        });
+    });
+
+    // Кнопка "Начать выполнение"
+    document.querySelectorAll('.start-task-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const index = parseInt(this.getAttribute('data-task-index'));
+            updateTaskStatus(index, 'in_progress');
+        });
+    });
+
+    // Кнопки редактирования
+    document.querySelectorAll('.edit-task-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const index = parseInt(this.getAttribute('data-task-index'));
+            showAddTaskModal(index);
+        });
+    });
+
+    // Кнопки удаления
+    document.querySelectorAll('.delete-task-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const index = parseInt(this.getAttribute('data-task-index'));
+            deleteTask(index);
+        });
+    });
+}
+
+function filterTasks(filterType) {
+    console.log('Фильтруем задачи по:', filterType);
+
+    // Просто перезагружаем задачи с новым фильтром
+    loadTasksData();
+}
+
+
+function loadTasksData() {
+    console.log('Загружаем задачи', tasksData);
+
+    // Обновляем счетчик
+    const tasksCountEl = document.getElementById('tasksCount');
+    if (tasksCountEl) {
+        tasksCountEl.textContent = tasksData.length;
+    }
+
+    // Заполняем список задач
+    const container = document.getElementById('tasksList');
+    if (!container) {
+        console.error('Не найден tasksList!');
+        return;
+    }
+
+    // Получаем текущий фильтр
+    const filterSelect = document.getElementById('taskFilter');
+    const filterType = filterSelect ? filterSelect.value : 'all';
+
+    // Фильтруем задачи
+    let filteredTasks = [...tasksData];
+    if (filterType !== 'all') {
+        if (filterType === 'my') {
+            filteredTasks = tasksData.filter(task =>
+                task.assigned_to == CURRENT_USER_ID || task.assigned_to === 'На себя'
+            );
+        } else {
+            filteredTasks = tasksData.filter(task => task.status === filterType);
+        }
+    }
+
+    if (filteredTasks.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-card-checklist fs-1"></i>
+                <p class="mb-0 mt-2">Задач пока нет</p>
+                <small>${filterType === 'all' ? 'Добавьте первую задачу' : 'Нет задач по этому фильтру'}</small>
+            </div>
+        `;
+    } else {
+        let html = '<div class="list-group list-group-flush">';
+
+        filteredTasks.forEach((task, index) => {
+            // Статус задачи
+            let statusBadge = '';
+            let statusClass = '';
+            switch(task.status) {
+                case 'todo':
+                    statusBadge = '<span class="badge bg-warning">К выполнению</span>';
+                    statusClass = 'border-start border-warning border-3';
+                    break;
+                case 'in_progress':
+                    statusBadge = '<span class="badge bg-primary">В процессе</span>';
+                    statusClass = 'border-start border-primary border-3';
+                    break;
+                case 'done':
+                    statusBadge = '<span class="badge bg-success">Выполнено</span>';
+                    statusClass = 'border-start border-success border-3';
+                    break;
+            }
+
+            // Кто назначен
+            let assignedToText = 'Не назначено';
+            if (task.assigned_to === CURRENT_USER_ID || task.assigned_to === 'На себя') {
+                assignedToText = '<strong>Вы</strong>';
+            } else if (task.assigned_to) {
+                // Здесь будет запрос к базе
+                assignedToText = task.assigned_to_name || `Участник #${task.assigned_to}`;
+            }
+
+            // Дата выполнения
+            let dueDateText = task.due_date ? new Date(task.due_date).toLocaleDateString() : 'Без срока';
+
+            // Подсветка просроченных задач
+            let dueDateClass = '';
+            if (task.due_date && task.status !== 'done') {
+                const dueDate = new Date(task.due_date);
+                const today = new Date();
+                if (dueDate < today) {
+                    dueDateClass = 'text-danger fw-bold';
+                } else if ((dueDate - today) / (1000 * 60 * 60 * 24) <= 2) {
+                    dueDateClass = 'text-warning fw-bold';
+                }
+            }
+
+            html += `
+                <div class="list-group-item ${statusClass} task-item" data-task-id="${task.id}" data-task-index="${index}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center">
+                                <div class="form-check me-3">
+                                    <input class="form-check-input task-checkbox" type="checkbox"
+                                           ${task.status === 'done' ? 'checked' : ''}
+                                           data-task-index="${index}">
+                                </div>
+                                <div>
+                                    <h6 class="mb-1 ${task.status === 'done' ? 'text-decoration-line-through text-muted' : ''}">
+                                        ${task.title}
+                                    </h6>
+                                    <div class="text-muted small">
+                                        <span class="me-3">
+                                            <i class="bi bi-person me-1"></i>${assignedToText}
+                                        </span>
+                                        <span class="${dueDateClass}">
+                                            <i class="bi bi-calendar me-1"></i>${dueDateText}
+                                        </span>
+                                        ${task.description ? `<div class="mt-1">${task.description}</div>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            ${statusBadge}
+                            <div class="btn-group btn-group-sm ms-2">
+                                ${task.status !== 'done' ? `
+                                    <button class="btn btn-outline-success start-task-btn" data-task-index="${index}" title="Начать выполнение">
+                                        <i class="bi bi-play"></i>
+                                    </button>
+                                ` : ''}
+                                <button class="btn btn-outline-primary edit-task-btn" data-task-index="${index}" title="Редактировать">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-outline-danger delete-task-btn" data-task-index="${index}" title="Удалить">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+
+        // Добавляем обработчики
+        addTaskActions();
+    }
+
+    // Обновляем статистику и "Мои задачи"
+    updateTaskStatistics();
+    updateMyTasksList();
+}
+
+function updateMyTasksList() {
+    const myTasksContainer = document.getElementById('myTasksList');
+    if (!myTasksContainer) return;
+
+    const myTasks = tasksData.filter(task =>
+        task.assigned_to == CURRENT_USER_ID || task.assigned_to === 'На себя'
+    );
+
+    if (myTasks.length === 0) {
+        myTasksContainer.innerHTML = `
+            <div class="text-center text-muted py-3">
+                <i class="bi bi-check2-square fs-1"></i>
+                <p class="mb-0">Вам не назначены задачи</p>
+            </div>
+        `;
+    } else {
+        let html = '<div class="list-group list-group-flush">';
+        myTasks.slice(0, 3).forEach((task, index) => {
+            const overdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
+
+            html += `
+                <div class="list-group-item border-0 py-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox"
+                               ${task.status === 'done' ? 'checked disabled' : ''}
+                               data-task-index="${tasksData.findIndex(t => t.id === task.id)}">
+                        <label class="form-check-label ${task.status === 'done' ? 'text-decoration-line-through text-muted' : ''} ${overdue ? 'text-danger' : ''}">
+                            ${task.title}
+                            ${overdue ? '<span class="badge bg-danger ms-2">Просрочено</span>' : ''}
+                        </label>
+                    </div>
+                </div>
+            `;
+        });
+
+        if (myTasks.length > 3) {
+            html += `
+                <div class="list-group-item border-0 text-center">
+                    <small class="text-muted">И еще ${myTasks.length - 3} задач</small>
+                </div>
+            `;
+        }
+
+        html += '</div>';
+        myTasksContainer.innerHTML = html;
+    }
+}
+// ============================================
+// ФУНКЦИИ УЧАСТНИКОВ И УВЕДОМЛЕНИЙ
+// (копируй из твоего кода без изменений)
+// ============================================
+
+function showAddParticipantModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addParticipantModal'));
+    modal.show();
+}
+
+function sendInvitation() {
+    // ... твой код отправки приглашения
+}
+
+function showNotificationModal() {
+    loadNotifications();
+    const modal = new bootstrap.Modal(document.getElementById('notificationModal'));
+    modal.show();
+}
+
+function loadNotifications() {
+    // ... твой код загрузки уведомлений
+}
+
+function markAllNotificationsAsRead() {
+    // ... твой код
+}
+
+function clearAllNotifications() {
+    // ... твой код
+}
+
+// ... остальные функции копируй из твоего кода
+
+// ============================================
+// ИНИЦИАЛИЗАЦИЯ СИСТЕМ (пустые заглушки)
+// ============================================
+
+function initParticipantsSystem() {
+    console.log('Инициализация системы участников...');
+}
+
+function loadParticipantsData() {
+    console.log('Загружаем участников...');
+}
+
+function initNotifications() {
+    console.log('Инициализация уведомлений...');
+}
+
+// ============================================
+// СИСТЕМА ДРУЗЕЙ И ПРИГЛАШЕНИЙ
+// ============================================
+
+function loadFriendsList() {
+    console.log('Загружаем список друзей...');
+    
+    const container = document.getElementById('friendsList');
+    if (!container) return;
+    
+    fetch(`/friends/ajax/`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.friends.length > 0) {
+            let html = '<div class="list-group list-group-flush">';
+            
+            data.friends.forEach(friend => {
+                html += `
+                    <div class="list-group-item border-0 py-2">
+                        <div class="form-check">
+                            <input class="form-check-input friend-checkbox" 
+                                   type="checkbox" 
+                                   value="${friend.id}"
+                                   id="friend_${friend.id}">
+                            <label class="form-check-label w-100" for="friend_${friend.id}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>${friend.username}</strong>
+                                        <div class="small text-muted">${friend.email || ''}</div>
+                                    </div>
+                                    <span class="badge bg-primary">Друг</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = `
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-people display-6"></i>
+                    <p class="mt-2">У вас пока нет друзей</p>
+                    <a href="{% url 'friends' %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-person-plus me-1"></i> Найти друзей
+                    </a>
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка загрузки друзей:', error);
+        container.innerHTML = `
+            <div class="text-center py-4 text-danger">
+                <i class="bi bi-exclamation-triangle display-6"></i>
+                <p class="mt-2">Ошибка загрузки друзей</p>
+            </div>
+        `;
+    });
+}
+
+// Добавь в showAddParticipantModal()
+function showAddParticipantModal() {
+    loadFriendsList(); // Загружаем друзей при открытии модалки
+    
+    const modal = new bootstrap.Modal(document.getElementById('addParticipantModal'));
+    modal.show();
+}
+</script>
+
+
+<style>
+    #eventMap {
+        width: 100%;
+        min-height: 300px;
+    }
+    .avatar {
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8f9fa;
+        border-radius: 50%;
+    }
+
+    /* Стили для вкладок */
+    .nav-tabs .nav-link {
+        color: #495057;
+        font-weight: 500;
+    }
+
+    .nav-tabs .nav-link.active {
+        font-weight: 600;
+    }
+
+    /* Стили для карточек внутри вкладок */
+    .tab-pane .card {
+        border-radius: 10px;
+    }
+</style>
+{% endblock %}

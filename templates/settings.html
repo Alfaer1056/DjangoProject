@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+
+{% block title %}Настройки{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Левый сайдбар -->
+        <div class="col-lg-2 col-md-3 sidebar bg-light border-end">
+            <div class="profile-section p-3 border-bottom">
+                <div class="d-flex align-items-center">
+                    <div class="avatar me-3">
+                        <i class="bi bi-person-circle fs-2 text-primary"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold">{{ user.username }}</h6>
+                        <small class="text-muted">{{ user.email|default:"Email не указан" }}</small>
+                    </div>
+                </div>
+                <a href="{% url 'profile' %}" class="btn btn-sm btn-outline-primary w-100 mt-3">
+                    <i class="bi bi-gear me-1"></i> Профиль
+                </a>
+            </div>
+            
+            <nav class="nav flex-column p-3">
+    <a class="nav-link" href="{% url 'main' %}">
+        <i class="bi bi-house me-2"></i> Главная
+    </a>
+    <a class="nav-link active" href="{% url 'my_events' %}">
+        <i class="bi bi-calendar-event me-2"></i> Мои мероприятия
+    </a>
+    <a class="nav-link" href="{% url 'create_event' %}">
+        <i class="bi bi-plus-circle me-2"></i> Создать мероприятие
+    </a>
+    <a class="nav-link" href="{% url 'calendar' %}">
+        <i class="bi bi-calendar-week me-2"></i> Календарь
+    </a>
+    <a class="nav-link" href="{% url 'friends' %}">
+        <i class="bi bi-people me-2"></i> Друзья
+    </a>
+    <a class="nav-link" href="{% url 'map' %}">
+        <i class="bi bi-map me-2"></i> Карта
+    </a>
+    <a class="nav-link" href="{% url 'settings' %}">
+        <i class="bi bi-sliders me-2"></i> Настройки
+    </a>
+</nav>
+        </div>
+        
+        <!-- Основной контент -->
+        <div class="col-lg-10 col-md-9 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 fw-bold mb-0">
+                    <i class="bi bi-sliders me-2"></i>Настройки
+                </h1>
+                <button type="button" class="btn btn-outline-secondary" id="notificationsBtn">
+                    <i class="bi bi-bell"></i>
+                    <span class="badge bg-danger rounded-pill">3</span>
+                </button>
+            </div>
+            
+            <!-- Настройки -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-4">
+                            <div class="list-group list-group-flush">
+                                <button class="list-group-item list-group-item-action active" data-bs-target="#accountSettings">
+                                    <i class="bi bi-person me-2"></i> Аккаунт
+                                </button>
+                                <button class="list-group-item list-group-item-action" data-bs-target="#notificationSettings">
+                                    <i class="bi bi-bell me-2"></i> Уведомления
+                                </button>
+                                <button class="list-group-item list-group-item-action" data-bs-target="#privacySettings">
+                                    <i class="bi bi-shield me-2"></i> Приватность
+                                </button>
+                                <button class="list-group-item list-group-item-action" data-bs-target="#appearanceSettings">
+                                    <i class="bi bi-palette me-2"></i> Внешний вид
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-8">
+                            <!-- Настройки аккаунта -->
+                            <div id="accountSettings" class="settings-panel">
+                                <h5 class="fw-bold mb-4">Настройки аккаунта</h5>
+                                
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Язык</label>
+                                    <select class="form-select">
+                                        <option selected>Русский</option>
+                                        <option>English</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Часовой пояс</label>
+                                    <select class="form-select">
+                                        <option selected>Москва (GMT+3)</option>
+                                        <option>Калининград (GMT+2)</option>
+                                        <option>Екатеринбург (GMT+5)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-check form-switch mb-4">
+                                    <input class="form-check-input" type="checkbox" id="emailNotifications" checked>
+                                    <label class="form-check-label" for="emailNotifications">
+                                        Получать уведомления на email
+                                    </label>
+                                </div>
+                                
+                                <button class="btn btn-primary">Сохранить настройки</button>
+                            </div>
+                            
+                            <!-- Настройки уведомлений -->
+                            <div id="notificationSettings" class="settings-panel d-none">
+                                <h5 class="fw-bold mb-4">Настройки уведомлений</h5>
+                                
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="eventNotifications" checked>
+                                    <label class="form-check-label" for="eventNotifications">
+                                        Уведомления о мероприятиях
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="messageNotifications" checked>
+                                    <label class="form-check-label" for="messageNotifications">
+                                        Уведомления о сообщениях
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="friendNotifications" checked>
+                                    <label class="form-check-label" for="friendNotifications">
+                                        Уведомления о друзьях
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Настройки приватности -->
+                            <div id="privacySettings" class="settings-panel d-none">
+                                <h5 class="fw-bold mb-4">Настройки приватности</h5>
+                                
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Кто может видеть мои мероприятия</label>
+                                    <select class="form-select">
+                                        <option selected>Только друзья</option>
+                                        <option>Все пользователи</option>
+                                        <option>Только я</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Кто может приглашать меня</label>
+                                    <select class="form-select">
+                                        <option selected>Только друзья</option>
+                                        <option>Все пользователи</option>
+                                        <option>Никто</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Настройки внешнего вида -->
+                            <div id="appearanceSettings" class="settings-panel d-none">
+                                <h5 class="fw-bold mb-4">Внешний вид</h5>
+                                
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Тема оформления</label>
+                                    <select class="form-select">
+                                        <option selected>Светлая</option>
+                                        <option>Темная</option>
+                                        <option>Автоматически</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Стили для настроек -->
+<style>
+    .settings-panel {
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    .list-group-item.active {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    {% block extra_css %}
+<style>
+/* Стили для активной ссылки в сайдбаре */
+.nav-link.active {
+    background-color: #e7f1ff;
+    border-left: 3px solid #0d6efd;
+    color: #0d6efd !important;
+    font-weight: 500;
+}
+
+.nav-link {
+    color: #495057;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 0.25rem;
+    transition: all 0.2s;
+}
+
+.nav-link:hover {
+    background-color: #f8f9fa;
+    color: #0d6efd;
+}
+
+/* Аватарки */
+.avatar {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: bold;
+}
+
+/* Для высоты сайдбара */
+.min-vh-100 {
+    min-height: 100vh;
+}
+</style>
+{% endblock %}
+</style>
+
+<!-- Скрипт для переключения настроек -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const settingsButtons = document.querySelectorAll('.list-group-item');
+        const settingsPanels = document.querySelectorAll('.settings-panel');
+        
+        settingsButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Убираем активный класс у всех кнопок
+                settingsButtons.forEach(btn => btn.classList.remove('active'));
+                // Добавляем активный класс текущей кнопке
+                this.classList.add('active');
+                
+                // Скрываем все панели
+                settingsPanels.forEach(panel => panel.classList.add('d-none'));
+                
+                // Показываем нужную панель
+                const targetId = this.getAttribute('data-bs-target').substring(1);
+                document.getElementById(targetId).classList.remove('d-none');
+            });
+        });
+    });
+</script>
+{% endblock %}

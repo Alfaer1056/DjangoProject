@@ -1,0 +1,267 @@
+{% if users %}
+    <div class="alert alert-info mb-3">
+        <i class="bi bi-info-circle me-2"></i>
+        {% if users|length == 1 %}
+            Найден 1 пользователь по запросу "{{ query }}"
+        {% else %}
+            Найдено {{ users|length }} пользователей по запросу "{{ query }}"
+        {% endif %}
+    </div>
+
+    <div class="list-group list-group-flush">
+        {% for user in users %}
+        <div class="list-group-item border-0 py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <!-- Аватар пользователя -->
+                    <div class="avatar {% if user.is_friend %}bg-success{% elif user.has_sent_request %}bg-warning{% elif user.has_received_request %}bg-info{% else %}bg-secondary{% endif %}
+                                text-white rounded-circle me-3"
+                         style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                        <span class="fs-5">{{ user.username|first|upper }}</span>
+                    </div>
+
+                    <!-- Информация о пользователе -->
+                    <div>
+                        <h6 class="mb-1">
+                            {{ user.username }}
+                            {% if user.is_friend %}
+                                <span class="badge bg-success ms-2">
+                                    <i class="bi bi-check-circle me-1"></i>Друг
+                                </span>
+                            {% elif user.has_sent_request %}
+                                <span class="badge bg-warning ms-2">
+                                    <i class="bi bi-clock me-1"></i>Заявка отправлена
+                                </span>
+                            {% elif user.has_received_request %}
+                                <span class="badge bg-info ms-2">
+                                    <i class="bi bi-envelope me-1"></i>Вам отправил заявку
+                                </span>
+                            {% endif %}
+                        </h6>
+                        <small class="text-muted d-block">
+                            <i class="bi bi-envelope me-1"></i>{{ user.email|default:"Email не указан" }}
+                        </small>
+                        {% if user.date_joined %}
+                        <small class="text-muted">
+                            <i class="bi bi-calendar me-1"></i> Зарегистрирован {{ user.date_joined }}
+                        </small>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Кнопки действий -->
+                <div class="actions">
+                    {% if user.is_friend %}
+                        <!-- Уже друзья -->
+                        <div class="btn-group">
+                            <a href="#" class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-chat me-1"></i> Написать
+                            </a>
+                            <button class="btn btn-sm btn-outline-danger remove-friend-btn"
+                                    data-user-id="{{ user.id }}"
+                                    data-username="{{ user.username }}">
+                                <i class="bi bi-person-dash me-1"></i> Удалить
+                            </button>
+                        </div>
+
+                    {% elif user.has_sent_request %}
+                        <!-- Я отправил заявку -->
+                        <div class="d-flex flex-column align-items-end">
+                            <span class="badge bg-warning mb-2">
+                                <i class="bi bi-hourglass-split me-1"></i> Ожидает ответа
+                            </span>
+                            {% if user.sent_request_id %}
+                            <form method="post" action="{% url 'reject_friend_request' user.sent_request_id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-x-circle me-1"></i> Отозвать заявку
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+
+                    {% elif user.has_received_request %}
+                        <!-- Мне отправили заявку -->
+                        <div class="btn-group">
+                            {% if user.received_request_id %}
+                            <form method="post" action="{% url 'accept_friend_request' user.received_request_id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    <i class="bi bi-check-lg me-1"></i> Принять
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'reject_friend_request' user.received_request_id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-x-lg me-1"></i> Отклонить
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+
+                    {% else %}
+                        <!-- Можно добавить в друзья -->
+                        <button class="btn btn-sm btn-primary add-friend-btn"
+                                data-user-id="{{ user.id }}"
+                                data-username="{{ user.username }}">
+                            <i class="bi bi-person-plus me-1"></i> Добавить в друзья
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Предупреждение если много результатов -->
+    {% if users|length >= 10 %}
+    <div class="alert alert-light mt-3">
+        <i class="bi bi-exclamation-circle me-2"></i>
+        Показаны первые 10 результатов. Уточните запрос для более точного поиска.
+    </div>
+    {% endif %}
+
+{% else %}
+    <!-- Нет результатов -->
+    <div class="text-center py-5">
+        <div class="mb-4">
+            <i class="bi bi-search display-1 text-muted"></i>
+        </div>
+        <h5 class="mb-3">Пользователи не найдены</h5>
+        <p class="text-muted mb-4">По запросу <strong>"{{ query }}"</strong> ничего не найдено</p>
+
+        <div class="suggestions">
+            <p class="text-muted small mb-2">Попробуйте:</p>
+            <ul class="list-unstyled text-muted small">
+                <li><i class="bi bi-check-circle me-2"></i>Проверить правильность написания имени</li>
+                <li><i class="bi bi-check-circle me-2"></i>Использовать часть имени</li>
+                <li><i class="bi bi-check-circle me-2"></i>Искать по email адресу</li>
+            </ul>
+        </div>
+    </div>
+{% endif %}
+
+<script>
+// Вспомогательная функция для получения CSRF токена
+function getCSRFToken() {
+    return document.querySelector('[name="csrfmiddlewaretoken"]')?.value ||
+           document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+}
+
+// Обработчик для кнопок "Добавить в друзья"
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.add-friend-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            const username = this.getAttribute('data-username');
+            const button = this;
+
+            // Меняем кнопку на "ожидание"
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            button.disabled = true;
+
+            // Отправляем запрос
+            fetch(`/friends/request/${userId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCSRFToken(),
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Обновляем кнопку
+                    button.innerHTML = '<i class="bi bi-clock me-1"></i> Заявка отправлена';
+                    button.classList.remove('btn-primary');
+                    button.classList.add('btn-warning', 'disabled');
+                    button.disabled = true;
+
+                    // Обновляем бейдж
+                    const badge = button.closest('.list-group-item').querySelector('.badge');
+                    if (badge) {
+                        badge.className = 'badge bg-warning ms-2';
+                        badge.innerHTML = '<i class="bi bi-clock me-1"></i>Заявка отправлена';
+                    }
+
+                    // Показываем уведомление
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Готово!',
+                            text: data.message,
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000
+                        });
+                    } else {
+                        alert(data.message);
+                    }
+                } else {
+                    // Восстанавливаем кнопку
+                    button.innerHTML = originalHTML;
+                    button.disabled = false;
+
+                    // Показываем ошибку
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Ошибка',
+                            text: data.error || 'Не удалось отправить заявку',
+                        });
+                    } else {
+                        alert(data.error || 'Не удалось отправить заявку');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                button.innerHTML = originalHTML;
+                button.disabled = false;
+
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Ошибка',
+                        text: 'Не удалось отправить заявку',
+                    });
+                } else {
+                    alert('Не удалось отправить заявку');
+                }
+            });
+        });
+    });
+});
+</script>
+
+<style>
+.avatar {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: bold;
+}
+
+.add-friend-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.list-group-item {
+    transition: background-color 0.2s;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+.suggestions {
+    max-width: 400px;
+    margin: 0 auto;
+}
+</style>
