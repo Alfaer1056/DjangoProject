@@ -39,6 +39,10 @@
                 <a class="nav-link" href="{% url 'friends' %}">
                     <i class="bi bi-people me-2"></i> Друзья
                 </a>
+                <a class="nav-link" href="{% url 'notifications' %}">
+        <i class="bi bi-bell me-2"></i> Уведомления
+        <span class="badge bg-danger ms-1" id="globalUnreadCount">0</span>
+    </a>
                 <a class="nav-link" href="{% url 'map' %}">
                     <i class="bi bi-map me-2"></i> Карта
                 </a>
@@ -49,7 +53,7 @@
         </div>
 
         <!-- Основной контент -->
-        <div class="col-lg-10 col-md-9 p-4">
+        <div class="col-lg-10 col-md-9 p-4" data-event-id="{{ event.id }}">
             <!-- Кнопка назад -->
             <div class="mb-4">
                 <a href="{% url 'my_events' %}" class="btn btn-outline-secondary">
@@ -121,6 +125,30 @@
                         {% include 'social/partials/event_participants.html' %}
                     </div>
 
+                <button class="btn btn-primary btn-sm" id="addParticipantBtn">
+    <i class="bi bi-person-plus me-1"></i> Пригласить друга
+</button>
+
+<script>
+// Добавьте обработчик для кнопки
+document.addEventListener('DOMContentLoaded', function() {
+    const addParticipantBtn = document.getElementById('addParticipantBtn');
+    if (addParticipantBtn) {
+        addParticipantBtn.addEventListener('click', function() {
+            // Анимируем кнопку
+            this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Открывается...';
+            this.disabled = true;
+            
+            setTimeout(() => {
+                this.innerHTML = '<i class="bi bi-person-plus me-1"></i> Пригласить друга';
+                this.disabled = false;
+                showAddParticipantModal();
+            }, 300);
+        });
+    }
+});
+</script>
+                
                 </div>
             {% endif %}
         </div>
@@ -138,6 +166,7 @@
 <script src="https://api-maps.yandex.ru/2.1/?apikey=ваш_api_ключ&lang=ru_RU"></script>
 {% endif %}
 
+    
 <script>
 // Глобальные переменные
 const EVENT_ID = {{ event.id|default:"0" }};
@@ -218,6 +247,22 @@ loadStoredData();
 function getCSRFToken() {
     return document.querySelector('[name="csrfmiddlewaretoken"]')?.value ||
            document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+}
+
+function showNotification(type, message) {
+    if (typeof Swal !== 'undefined') {
+        const sweetType = type === 'error' ? 'error' : (type === 'success' ? 'success' : 'info');
+        Swal.fire({
+            icon: sweetType,
+            title: message,
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000
+        });
+    } else {
+        alert(message);
+    }
 }
 
 // ============================================
@@ -317,22 +362,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 3. Кнопки участников
-    const addParticipantBtn = document.getElementById('addParticipantBtn');
-    if (addParticipantBtn) {
-        addParticipantBtn.addEventListener('click', function() {
-            showAddParticipantModal();
-        });
-    }
-
-    const sendInvitationBtn = document.getElementById('sendInvitationBtn');
-    if (sendInvitationBtn) {
-        sendInvitationBtn.addEventListener('click', function() {
-            sendInvitation();
-        });
-    }
-
-    // 4. Кнопки уведомлений
+    // 3. Кнопки уведомлений
     const notificationBtn = document.getElementById('notificationBtn');
     if (notificationBtn) {
         notificationBtn.addEventListener('click', function() {
@@ -354,12 +384,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 5. Инициализация систем
+    // 4. Инициализация систем
     initTabs();
     initMoneySystem();
     initTasksSystem();
-    initParticipantsSystem();
-    initNotifications();
+    initInvitationSystem();
 });
 
 // ============================================
@@ -424,20 +453,15 @@ function loadTabData(tabId) {
 
 function initMoneySystem() {
     console.log('Инициализация системы денег...');
+
+    // Кнопка обновления долгов
     const refreshDebtsBtn = document.getElementById('refreshDebtsBtn');
-if (refreshDebtsBtn) {
-    refreshDebtsBtn.addEventListener('click', function() {
-        calculateDebts();
-        Swal.fire({
-            icon: 'success',
-            title: 'Долги обновлены!',
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 1000
+    if (refreshDebtsBtn) {
+        refreshDebtsBtn.addEventListener('click', function() {
+            calculateDebts();
+            showNotification('success', 'Долги обновлены!');
         });
-    });
-}
+    }
 
     // Проверяем существование элементов
     const addExpenseBtn = document.getElementById('addExpenseBtn');
@@ -800,21 +824,21 @@ function setBudget() {
 
 function calculateDebts() {
     console.log('Рассчитываем долги...');
-    
+
     // Если нет трат - нет долгов
     if (expensesData.length === 0) {
         updateMyDebtsList([]);
         updateDebtsSummary([]);
         return;
     }
-    
+
     // Собираем информацию об участниках
     const participants = [
         { id: CURRENT_USER_ID, name: 'Вы' },
         { id: '2', name: 'Алексей' },
         { id: '3', name: 'Мария' }
     ];
-    
+
     // Инициализируем балансы
     let balances = {};
     participants.forEach(p => {
@@ -826,31 +850,31 @@ function calculateDebts() {
             balance: 0    // Разница (положительная = должен получить, отрицательная = должен отдать)
         };
     });
-    
+
     // Рассчитываем: кто сколько заплатил и сколько должен был заплатить
     expensesData.forEach(expense => {
         const amount = parseFloat(expense.amount);
         const payerId = expense.paid_by;
-        
+
         // Увеличиваем сумму оплаченную плательщиком
         if (balances[payerId]) {
             balances[payerId].paid += amount;
         }
-        
+
         // Разделяем расход
         if (expense.shares && expense.shares.trim()) {
             // Если указано ручное разделение
             // Пример строки: "Вы: 500, Алексей: 500, Мария: 500"
             const sharePattern = /([^:]+):\s*([\d.]+)/g;
             let match;
-            
+
             while ((match = sharePattern.exec(expense.shares)) !== null) {
                 const name = match[1].trim();
                 const share = parseFloat(match[2]);
-                const participant = participants.find(p => 
+                const participant = participants.find(p =>
                     p.name === name || (p.id === CURRENT_USER_ID && name === 'Вы')
                 );
-                
+
                 if (participant && balances[participant.id]) {
                     balances[participant.id].share += share;
                 }
@@ -865,7 +889,7 @@ function calculateDebts() {
             });
         }
     });
-    
+
     // Рассчитываем баланс для каждого
     // БАЛАНС = (Сколько заплатил) - (Сколько должен был заплатить)
     // Если баланс > 0: переплатил, должен получить деньги
@@ -873,25 +897,25 @@ function calculateDebts() {
     Object.keys(balances).forEach(id => {
         balances[id].balance = balances[id].paid - balances[id].share;
     });
-    
+
     console.log('Балансы участников:', balances);
-    
+
     // Находим мои долги
     const myDebts = [];
     const myId = CURRENT_USER_ID;
     const myBalance = balances[myId] ? balances[myId].balance : 0;
-    
+
     // Логика:
     // Если мой баланс < 0: Я НЕДОПЛАТИЛ, должен отдать другим
     // Если мой баланс > 0: Я ПЕРЕПЛАТИЛ, мне должны другие
-    
+
     if (myBalance < 0) {
         // Я должен отдать деньги
         // Находим тех, кто переплатил (у них balance > 0)
         Object.keys(balances).forEach(otherId => {
             if (otherId !== myId && balances[otherId]) {
                 const otherBalance = balances[otherId].balance;
-                
+
                 if (otherBalance > 0) {
                     // Этот участник переплатил, я должен ему
                     const amount = Math.min(Math.abs(myBalance), otherBalance);
@@ -909,7 +933,7 @@ function calculateDebts() {
         Object.keys(balances).forEach(otherId => {
             if (otherId !== myId && balances[otherId]) {
                 const otherBalance = balances[otherId].balance;
-                
+
                 if (otherBalance < 0) {
                     // Этот участник недоплатил, должен мне
                     const amount = Math.min(myBalance, Math.abs(otherBalance));
@@ -922,25 +946,25 @@ function calculateDebts() {
             }
         });
     }
-    
+
     console.log('Мои долги:', myDebts);
-    
+
     // Обновляем отображение
     updateMyDebtsList(myDebts, myBalance);
     updateDebtsSummary(balances);
-    
+
     return balances;
 }
 
 function updateMyDebtsList(myDebts, myBalance = 0) {
     const container = document.getElementById('myDebtsList');
     if (!container) return;
-    
+
     // Определяем общий статус
     let statusMessage = '';
     let statusIcon = 'bi-check-circle';
     let statusColor = 'success';
-    
+
     if (myBalance < 0) {
         statusMessage = `Вы должны: ${Math.abs(myBalance).toFixed(2)} руб.`;
         statusIcon = 'bi-exclamation-triangle';
@@ -950,7 +974,7 @@ function updateMyDebtsList(myDebts, myBalance = 0) {
         statusIcon = 'bi-info-circle';
         statusColor = 'info';
     }
-    
+
     if (myDebts.length === 0) {
         container.innerHTML = `
             <div class="text-center text-muted py-3">
@@ -961,7 +985,7 @@ function updateMyDebtsList(myDebts, myBalance = 0) {
         `;
     } else {
         let html = '<div class="list-group list-group-flush">';
-        
+
         // Показываем общий статус сверху
         if (myBalance !== 0) {
             html += `
@@ -973,7 +997,7 @@ function updateMyDebtsList(myDebts, myBalance = 0) {
                 </div>
             `;
         }
-        
+
         myDebts.forEach((debt, index) => {
             if (debt.type === 'owe') {
                 // Я должен отдать
@@ -1015,9 +1039,9 @@ function updateMyDebtsList(myDebts, myBalance = 0) {
                 `;
             }
         });
-        
+
         html += '</div>';
-        
+
         // Добавляем кнопку пересчета
         html += `
             <div class="mt-3 pt-3 border-top">
@@ -1026,22 +1050,15 @@ function updateMyDebtsList(myDebts, myBalance = 0) {
                 </button>
             </div>
         `;
-        
+
         container.innerHTML = html;
-        
+
         // Обработчик кнопки
         const recalcBtn = document.getElementById('recalculateDebtsBtn');
         if (recalcBtn) {
             recalcBtn.addEventListener('click', function() {
                 calculateDebts();
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Долги пересчитаны!',
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 1000
-                });
+                showNotification('success', 'Долги пересчитаны!');
             });
         }
     }
@@ -1050,13 +1067,13 @@ function updateMyDebtsList(myDebts, myBalance = 0) {
 function updateDebtsSummary(balances) {
     const container = document.getElementById('debtsList');
     if (!container) return;
-    
+
     // Считаем общую статистику
     let totalOwed = 0;    // Сколько должны мне
     let totalOwe = 0;     // Сколько я должен
     const myId = CURRENT_USER_ID;
     const myBalance = balances[myId] ? balances[myId].balance : 0;
-    
+
     // Логика:
     // myBalance > 0: мне должны -> totalOwed
     // myBalance < 0: я должен -> totalOwe
@@ -1065,7 +1082,7 @@ function updateDebtsSummary(balances) {
     } else if (myBalance < 0) {
         totalOwe = Math.abs(myBalance);
     }
-    
+
     if (totalOwed === 0 && totalOwe === 0) {
         container.innerHTML = `
             <div class="alert alert-success">
@@ -1076,7 +1093,7 @@ function updateDebtsSummary(balances) {
         `;
     } else {
         let summaryHtml = '';
-        
+
         if (totalOwe > 0) {
             summaryHtml += `
                 <div class="alert alert-danger">
@@ -1086,7 +1103,7 @@ function updateDebtsSummary(balances) {
                 </div>
             `;
         }
-        
+
         if (totalOwed > 0) {
             summaryHtml += `
                 <div class="alert alert-success">
@@ -1096,14 +1113,14 @@ function updateDebtsSummary(balances) {
                 </div>
             `;
         }
-        
+
         // Добавляем детализированную таблицу с ПРАВИЛЬНОЙ логикой
         summaryHtml += `
             <div class="mt-3">
                 <h6 class="fw-bold mb-2">Балансы участников:</h6>
                 <p class="small text-muted mb-3">
-                    <i class="bi bi-info-circle"></i> 
-                    Положительный баланс = переплатил (должны вернуть). 
+                    <i class="bi bi-info-circle"></i>
+                    Положительный баланс = переплатил (должны вернуть).
                     Отрицательный баланс = недоплатил (должен вернуть).
                 </p>
                 <div class="table-responsive">
@@ -1122,7 +1139,7 @@ function updateDebtsSummary(balances) {
                                 const isMe = balance.id === myId;
                                 let status = '';
                                 let statusClass = '';
-                                
+
                                 if (balance.balance > 0) {
                                     status = '<span class="badge bg-success">Переплатил</span>';
                                     statusClass = 'table-success';
@@ -1132,11 +1149,11 @@ function updateDebtsSummary(balances) {
                                 } else {
                                     status = '<span class="badge bg-secondary">В расчете</span>';
                                 }
-                                
+
                                 return `
                                     <tr class="${isMe ? 'table-active ' : ''}${statusClass}">
                                         <td>
-                                            ${balance.name} 
+                                            ${balance.name}
                                             ${isMe ? '<span class="badge bg-primary ms-1">Вы</span>' : ''}
                                         </td>
                                         <td>${balance.paid.toFixed(2)} руб.</td>
@@ -1153,13 +1170,13 @@ function updateDebtsSummary(balances) {
                 </div>
             </div>
         `;
-        
+
         container.innerHTML = summaryHtml;
     }
 }
 
 // ============================================
-// СИСТЕМА ЗАДАЧ (остальные функции остаются без изменений)
+// СИСТЕМА ЗАДАЧ
 // ============================================
 
 function initTasksSystem() {
@@ -1191,7 +1208,44 @@ function initTasksSystem() {
     }
 }
 
+function addTestTasks() {
+    const testTasks = [
+        {
+            id: Date.now(),
+            title: 'Купить билеты на самолет',
+            description: 'Билеты в оба конца для всех участников',
+            assigned_to: CURRENT_USER_ID,
+            due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: 'todo',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        },
+        {
+            id: Date.now() + 1,
+            title: 'Забронировать отель',
+            description: 'Найти и забронировать хороший отель в центре города',
+            assigned_to: '2',
+            due_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: 'in_progress',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        },
+        {
+            id: Date.now() + 2,
+            title: 'Спланировать маршрут экскурсий',
+            description: 'Составить список интересных мест для посещения',
+            assigned_to: '3',
+            due_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: 'done',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        }
+    ];
 
+    tasksData = [...testTasks];
+    saveTasks();
+    loadTasksData();
+}
 
 function updateTaskStatistics() {
     const total = tasksData.length;
@@ -1389,17 +1443,10 @@ function updateTaskStatus(index, newStatus) {
         case 'done': message = 'Задача выполнена!'; break;
     }
 
-    Swal.fire({
-        icon: 'success',
-        title: message,
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 1500,
-        willClose: () => {
-            loadTasksData();
-        }
-    });
+    showNotification('success', message);
+    setTimeout(() => {
+        loadTasksData();
+    }, 100);
 }
 
 function completeTask(index) {
@@ -1479,11 +1526,8 @@ function addTaskActions() {
 
 function filterTasks(filterType) {
     console.log('Фильтруем задачи по:', filterType);
-
-    // Просто перезагружаем задачи с новым фильтром
     loadTasksData();
 }
-
 
 function loadTasksData() {
     console.log('Загружаем задачи', tasksData);
@@ -1677,102 +1721,499 @@ function updateMyTasksList() {
         myTasksContainer.innerHTML = html;
     }
 }
+
 // ============================================
-// ФУНКЦИИ УЧАСТНИКОВ И УВЕДОМЛЕНИЙ
-// (копируй из твоего кода без изменений)
+// СИСТЕМА УЧАСТНИКОВ
 // ============================================
 
+// Функция для загрузки данных участников
+async function loadParticipantsData() {
+    console.log('Загрузка данных участников для события:', EVENT_ID);
+
+    const eventId = EVENT_ID;
+
+    if (!eventId) {
+        console.error('Не указан eventId для загрузки участников');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/events/${eventId}/participants/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        console.log('Participants API response status:', response.status);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Participants data:', data);
+
+        if (data.success) {
+            // Обновляем UI с полученными данными
+            if (data.participants && data.participants.length > 0) {
+                console.log('Найдено участников:', data.participants.length);
+                updateParticipantsUI(data.participants);
+                updateParticipantsCounter(data.count || data.participants.length);
+            } else {
+                console.log('Нет участников');
+                updateParticipantsUI([]);
+                updateParticipantsCounter(0);
+            }
+        } else {
+            showNotification('error', data.error || 'Ошибка загрузки участников');
+        }
+
+    } catch (error) {
+        console.error('Ошибка загрузки участников:', error);
+        showNotification('error', 'Ошибка загрузки участников');
+    }
+}
+
+// Функция обновления счетчика участников
+function updateParticipantsCounter(count) {
+    console.log('Обновление счетчика участников на:', count);
+
+    // Обновляем все счетчики
+    const counters = document.querySelectorAll('.participants-count, #participantsCount');
+    counters.forEach(counter => {
+        counter.textContent = count;
+        console.log('Обновлен счетчик:', counter.id || counter.className);
+    });
+
+    // Обновляем заголовок на вкладке (если есть)
+    const tabButton = document.querySelector('#participants-tab .badge');
+    if (tabButton) {
+        tabButton.textContent = count;
+    }
+}
+
+/// Исправленная функция обновления UI участников
+function updateParticipantsUI(participants) {
+    console.log('Обновление UI участников:', participants);
+
+    const container = document.getElementById('participantsContainer');
+    if (!container) {
+        console.error('Контейнер participantsContainer не найден');
+        console.log('Ищем контейнер...');
+        // Попробуем найти альтернативный контейнер
+        const altContainer = document.getElementById('participantsList');
+        if (altContainer) {
+            console.log('Найден альтернативный контейнер participantsList');
+            updateParticipantsInList(participants, altContainer);
+            return;
+        }
+        return;
+    }
+
+    if (!participants || participants.length === 0) {
+        container.innerHTML = `
+            <div class="row" id="participantsList">
+                <div class="col-12">
+                    <div class="alert alert-info text-center py-4">
+                        <i class="bi bi-people display-1 text-muted mb-3"></i>
+                        <h5 class="mt-3">Пока нет участников</h5>
+                        <p class="text-muted">Пригласите друзей в мероприятие</p>
+                        <button class="btn btn-primary mt-2" id="showInviteModalBtn">
+                            <i class="bi bi-person-plus me-1"></i>Пригласить первого участника
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Добавляем обработчик кнопки
+        const inviteBtn = document.getElementById('showInviteModalBtn');
+        if (inviteBtn) {
+            inviteBtn.addEventListener('click', function() {
+                showAddParticipantModal();
+            });
+        }
+
+        return;
+    }
+
+    let html = `
+        <div class="row" id="participantsList">
+            <div class="col-12">
+                <div class="alert alert-success mb-3">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <strong>${participants.length} участник${participants.length === 1 ? '' : 'а'}</strong>
+                </div>
+    `;
+
+    participants.forEach(participant => {
+        console.log('Обработка участника:', participant);
+
+        // Статус участника
+        let statusBadge = '';
+        let statusClass = '';
+
+        switch(participant.status) {
+            case 'invited':
+                statusBadge = '<span class="badge bg-warning">Ожидает ответа</span>';
+                statusClass = 'border-warning';
+                break;
+            case 'accepted':
+                statusBadge = '<span class="badge bg-success">Принял</span>';
+                statusClass = 'border-success';
+                break;
+            case 'declined':
+                statusBadge = '<span class="badge bg-danger">Отклонил</span>';
+                statusClass = 'border-danger';
+                break;
+            case 'confirmed':
+                statusBadge = '<span class="badge bg-primary">Подтвержден</span>';
+                statusClass = 'border-primary';
+                break;
+            default:
+                statusBadge = '<span class="badge bg-secondary">Неизвестно</span>';
+                statusClass = 'border-secondary';
+        }
+
+        // Роль если указана
+        let roleBadge = '';
+        if (participant.role && participant.role !== 'Участник' && participant.role !== '') {
+            roleBadge = `<span class="badge bg-info ms-2">${participant.role}</span>`;
+        }
+
+        // Кто пригласил
+        const invitedBy = participant.invited_by || 'Организатор';
+
+        html += `
+            <div class="card mb-3 border-start ${statusClass} border-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar bg-primary text-white rounded-circle me-3"
+                                 style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                                <span class="fs-5">${participant.username.charAt(0).toUpperCase()}</span>
+                            </div>
+                            <div>
+                                <div class="d-flex align-items-center mb-1">
+                                    <h6 class="mb-0 me-2">${participant.username}</h6>
+                                    ${roleBadge}
+                                    ${statusBadge}
+                                </div>
+                                <div class="small text-muted">
+                                    <i class="bi bi-person-plus me-1"></i>Пригласил: ${invitedBy}
+                                    ${participant.created_at ?
+                                        `<br><i class="bi bi-clock me-1"></i>Приглашение отправлено: ${participant.created_at}` :
+                                        ''}
+                                </div>
+                            </div>
+                        </div>
+                        ${participant.status === 'invited' ? `
+    <div class="mt-2">
+        <button class="btn btn-sm btn-outline-danger cancel-invite-btn" 
+                data-participant-id="${participant.id}"
+                data-username="${participant.username}"
+                onclick="cancelInvitation(${participant.id}, '${participant.username}')">
+            <i class="bi bi-x-circle me-1"></i> Отменить приглашение
+        </button>
+    </div>
+` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    html += `
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = html;
+
+    // Добавляем обработчики для кнопок отмены
+    document.querySelectorAll('.cancel-invite-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const participantId = this.getAttribute('data-participant-id');
+            const username = this.getAttribute('data-username');
+            cancelInvitation(participantId, username);
+        });
+    });
+}
+
+// Альтернативная функция если используется participantsList
+function updateParticipantsInList(participants, container) {
+    console.log('Используем альтернативный контейнер');
+
+    if (!participants || participants.length === 0) {
+        container.innerHTML = `
+            <div class="col-12">
+                <div class="alert alert-info text-center py-4">
+                    <i class="bi bi-people display-1 text-muted mb-3"></i>
+                    <h5 class="mt-3">Пока нет участников</h5>
+                    <p class="text-muted">Пригласите друзей в мероприятие</p>
+                    <button class="btn btn-primary mt-2" id="showInviteModalBtn">
+                        <i class="bi bi-person-plus me-1"></i>Пригласить первого участника
+                    </button>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+
+    participants.forEach(participant => {
+        // Аналогичная логика как выше
+        let statusBadge = '';
+        switch(participant.status) {
+            case 'invited': statusBadge = '<span class="badge bg-warning">Ожидает ответа</span>'; break;
+            case 'accepted': statusBadge = '<span class="badge bg-success">Принял</span>'; break;
+            case 'declined': statusBadge = '<span class="badge bg-danger">Отклонил</span>'; break;
+            default: statusBadge = '<span class="badge bg-secondary">Неизвестно</span>';
+        }
+
+        html += `
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="avatar bg-primary text-white rounded-circle me-3"
+                                 style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                <span class="fs-6">${participant.username.charAt(0).toUpperCase()}</span>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">${participant.username}</h6>
+                                <small class="text-muted">${participant.role || 'Участник'}</small>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="small text-muted">
+                                <i class="bi bi-person-plus me-1"></i>${participant.invited_by || 'Организатор'}
+                            </div>
+                            ${statusBadge}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = `<div class="row">${html}</div>`;
+}
+
+
+// Функция отмены приглашения с подтверждением
+async function cancelInvitation(participantId, username) {
+    // Показываем подтверждение
+    const result = await Swal.fire({
+        title: 'Отменить приглашение?',
+        html: `
+            <div class="text-start">
+                <p>Вы уверены, что хотите отменить приглашение для <strong>${username}</strong>?</p>
+                <p class="text-muted small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Пользователь больше не сможет принять это приглашение
+                </p>
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-trash me-1"></i> Да, отменить',
+        cancelButtonText: '<i class="bi bi-x-circle me-1"></i> Нет, оставить',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        reverseButtons: true,
+        customClass: {
+            popup: 'rounded-3',
+            confirmButton: 'btn btn-danger px-4',
+            cancelButton: 'btn btn-secondary px-4'
+        },
+        buttonsStyling: false
+    });
+    
+    if (!result.isConfirmed) return;
+    
+    try {
+        // Показываем загрузку
+        Swal.fire({
+            title: 'Отмена приглашения...',
+            text: `Отменяем приглашение для ${username}`,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // Отправляем запрос на сервер
+        const response = await fetch(`/events/${EVENT_ID}/cancel-invite/${participantId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        const data = await response.json();
+        
+        // Закрываем окно загрузки
+        Swal.close();
+        
+        if (data.success) {
+            // Успех - показываем уведомление
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
+            });
+            
+            await Toast.fire({
+                icon: 'success',
+                title: `Приглашение для ${username} отменено`
+            });
+            
+            // Обновляем список участников через 1 секунду
+            setTimeout(() => {
+                console.log('Обновляем список участников после отмены...');
+                loadParticipantsData();
+            }, 1000);
+            
+        } else {
+            // Ошибка
+            Swal.fire({
+                icon: 'error',
+                title: 'Ошибка',
+                text: data.error || 'Не удалось отменить приглашение',
+                confirmButtonText: 'Понятно'
+            });
+        }
+        
+    } catch (error) {
+        console.error('Ошибка отмены приглашения:', error);
+        Swal.close();
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Ошибка соединения',
+            text: 'Не удалось подключиться к серверу',
+            confirmButtonText: 'Понятно'
+        });
+    }
+}
+
+
+function getStatusBadge(status) {
+    switch(status) {
+        case 'invited':
+            return '<span class="badge bg-warning">Ожидает ответа</span>';
+        case 'accepted':
+            return '<span class="badge bg-success">Принял</span>';
+        case 'declined':
+            return '<span class="badge bg-danger">Отклонил</span>';
+        case 'confirmed':
+            return '<span class="badge bg-primary">Подтвержден</span>';
+        default:
+            return '<span class="badge bg-secondary">Неизвестно</span>';
+    }
+}
+
+// ============================================
+// СИСТЕМА ПРИГЛАШЕНИЙ
+// ============================================
+
+function initInvitationSystem() {
+    console.log('Инициализация системы приглашений');
+
+    // Кнопка открытия модального окна на странице
+    const addParticipantBtn = document.getElementById('addParticipantBtn');
+    if (addParticipantBtn) {
+        addParticipantBtn.addEventListener('click', showAddParticipantModal);
+    }
+
+    // Загружаем участников при загрузке страницы
+    loadParticipantsData(EVENT_ID);
+}
+
 function showAddParticipantModal() {
+    console.log('Показываем модальное окно приглашения');
+
+    // Загружаем список друзей
+    loadFriendsList();
+
+    // Показываем модальное окно
     const modal = new bootstrap.Modal(document.getElementById('addParticipantModal'));
     modal.show();
 }
 
-function sendInvitation() {
-    // ... твой код отправки приглашения
-}
+async function loadFriendsList() {
+    console.log('Загружаем список друзей для приглашения...');
 
-function showNotificationModal() {
-    loadNotifications();
-    const modal = new bootstrap.Modal(document.getElementById('notificationModal'));
-    modal.show();
-}
-
-function loadNotifications() {
-    // ... твой код загрузки уведомлений
-}
-
-function markAllNotificationsAsRead() {
-    // ... твой код
-}
-
-function clearAllNotifications() {
-    // ... твой код
-}
-
-// ... остальные функции копируй из твоего кода
-
-// ============================================
-// ИНИЦИАЛИЗАЦИЯ СИСТЕМ (пустые заглушки)
-// ============================================
-
-function initParticipantsSystem() {
-    console.log('Инициализация системы участников...');
-}
-
-function loadParticipantsData() {
-    console.log('Загружаем участников...');
-}
-
-function initNotifications() {
-    console.log('Инициализация уведомлений...');
-}
-
-// ============================================
-// СИСТЕМА ДРУЗЕЙ И ПРИГЛАШЕНИЙ
-// ============================================
-
-function loadFriendsList() {
-    console.log('Загружаем список друзей...');
-    
     const container = document.getElementById('friendsList');
-    if (!container) return;
-    
-    fetch(`/friends/ajax/`, {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
+    if (!container) {
+        console.error('Контейнер friendsList не найден');
+        return;
+    }
+
+    try {
+        const response = await fetch('/friends/ajax/', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success && data.friends.length > 0) {
+
+        const data = await response.json();
+        console.log('Список друзей загружен:', data);
+
+        if (data.success && data.friends && data.friends.length > 0) {
             let html = '<div class="list-group list-group-flush">';
-            
+
             data.friends.forEach(friend => {
                 html += `
                     <div class="list-group-item border-0 py-2">
-                        <div class="form-check">
-                            <input class="form-check-input friend-checkbox" 
-                                   type="checkbox" 
-                                   value="${friend.id}"
-                                   id="friend_${friend.id}">
-                            <label class="form-check-label w-100" for="friend_${friend.id}">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <strong>${friend.username}</strong>
-                                        <div class="small text-muted">${friend.email || ''}</div>
-                                    </div>
-                                    <span class="badge bg-primary">Друг</span>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar bg-primary text-white rounded-circle me-3"
+                                     style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                    <span class="fs-6">${friend.username.charAt(0).toUpperCase()}</span>
                                 </div>
-                            </label>
+                                <div>
+                                    <div class="fw-bold">${friend.username}</div>
+                                    <small class="text-muted">${friend.email || 'Нет email'}</small>
+                                </div>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-primary invite-friend-btn"
+                                        data-user-id="${friend.id}"
+                                        data-username="${friend.username}">
+                                    <i class="bi bi-person-plus me-1"></i> Пригласить
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
             });
-            
+
             html += '</div>';
             container.innerHTML = html;
+
+            // Инициализируем кнопки приглашения
+            initInviteButtons();
+
         } else {
+            // Нет друзей
             container.innerHTML = `
                 <div class="text-center py-4 text-muted">
                     <i class="bi bi-people display-6"></i>
@@ -1783,27 +2224,488 @@ function loadFriendsList() {
                 </div>
             `;
         }
-    })
-    .catch(error => {
+
+    } catch (error) {
         console.error('Ошибка загрузки друзей:', error);
         container.innerHTML = `
             <div class="text-center py-4 text-danger">
                 <i class="bi bi-exclamation-triangle display-6"></i>
                 <p class="mt-2">Ошибка загрузки друзей</p>
+                <button class="btn btn-sm btn-outline-primary" onclick="loadFriendsList()">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Попробовать снова
+                </button>
             </div>
         `;
+    }
+}
+
+function initInviteButtons() {
+    console.log('Инициализация кнопок приглашения');
+
+    // Удаляем старые обработчики
+    document.querySelectorAll('.invite-friend-btn').forEach(btn => {
+        btn.replaceWith(btn.cloneNode(true));
+    });
+
+    // Добавляем новые обработчики
+    document.querySelectorAll('.invite-friend-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            const username = this.getAttribute('data-username');
+
+            if (!userId || !username) {
+                showNotification('error', 'Ошибка: не найден ID пользователя');
+                return;
+            }
+
+            // Показываем подтверждение
+            Swal.fire({
+                title: `Пригласить ${username}?`,
+                html: `
+                    <div class="text-start">
+                        <p>Вы хотите пригласить <strong>${username}</strong> в мероприятие?</p>
+                        <p class="text-muted small">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Пользователь получит уведомление о приглашении
+                        </p>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Да, пригласить',
+                cancelButtonText: 'Отмена',
+                confirmButtonColor: '#0d6efd',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    inviteFriend(userId, username);
+                }
+            });
+        });
     });
 }
 
-// Добавь в showAddParticipantModal()
-function showAddParticipantModal() {
-    loadFriendsList(); // Загружаем друзей при открытии модалки
+// Функция отправки приглашения другу с красивыми подтверждениями
+async function inviteFriend(userId, username) {
+    console.log(`Приглашение пользователя: ${username} (ID: ${userId})`);
     
-    const modal = new bootstrap.Modal(document.getElementById('addParticipantModal'));
-    modal.show();
+    // Шаг 1: Подтверждение отправки приглашения
+    const { value: role, isConfirmed } = await Swal.fire({
+        title: `Пригласить ${username}?`,
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <p>Вы хотите пригласить <strong>${username}</strong> в мероприятие <strong>"${document.title}"</strong>.</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Роль в мероприятии:</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+                        <input type="text" id="roleInput" class="form-control" 
+                               placeholder="Участник" value="Участник">
+                    </div>
+                    <small class="text-muted">Например: Водитель, Координатор, Фотограф, Ответственный за питание</small>
+                </div>
+                <div class="alert alert-info mt-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <small>Пользователь получит уведомление о приглашении и сможет принять или отклонить его.</small>
+                </div>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-send me-1"></i> Отправить приглашение',
+        cancelButtonText: '<i class="bi bi-x-circle me-1"></i> Отмена',
+        confirmButtonColor: '#0d6efd',
+        cancelButtonColor: '#6c757d',
+        reverseButtons: true,
+        focusConfirm: false,
+        allowOutsideClick: () => !Swal.isLoading(),
+        preConfirm: () => {
+            const roleInput = document.getElementById('roleInput');
+            const role = roleInput ? roleInput.value.trim() : 'Участник';
+            
+            if (role.length > 50) {
+                Swal.showValidationMessage('Роль не должна превышать 50 символов');
+                return false;
+            }
+            
+            return role || 'Участник';
+        },
+        customClass: {
+            popup: 'rounded-3 border-0 shadow-lg',
+            confirmButton: 'btn btn-primary px-4',
+            cancelButton: 'btn btn-secondary px-4'
+        },
+        buttonsStyling: false,
+        width: '500px'
+    });
+    
+    if (!isConfirmed) {
+        console.log('Пользователь отменил отправку приглашения');
+        return;
+    }
+    
+    // Шаг 2: Отправка приглашения
+    try {
+        // Показываем окно загрузки
+        Swal.fire({
+            title: '<div class="spinner-border text-primary me-2"></div> Отправка приглашения...',
+            html: `
+                <div class="text-center mt-3">
+                    <p>Отправляем приглашение <strong>${username}</strong></p>
+                    <div class="progress mt-2" style="height: 6px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 100%"></div>
+                    </div>
+                </div>
+            `,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false,
+            showConfirmButton: false,
+            showCancelButton: false,
+            backdrop: 'rgba(0,0,0,0.5)',
+            customClass: {
+                popup: 'rounded-3 border-0'
+            }
+        });
+        
+        // Отправляем AJAX запрос
+        const response = await fetch(`/events/${EVENT_ID}/invite/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                friend_id: userId,
+                role: role || 'Участник'
+            })
+        });
+        
+        const data = await response.json();
+        
+        // Закрываем окно загрузки
+        Swal.close();
+        
+        // Шаг 3: Обработка результата
+        if (data.success) {
+            // УСПЕХ: Приглашение отправлено
+            
+            // 3.1 Показываем успешное уведомление
+            const successToast = await Swal.fire({
+                icon: 'success',
+                title: 'Приглашение отправлено!',
+                html: `
+                    <div class="text-center">
+                        <div class="mb-3">
+                            <i class="bi bi-check-circle-fill text-success display-4"></i>
+                        </div>
+                        <p><strong>${username}</strong> получил приглашение</p>
+                        <small class="text-muted">Статус: <span class="badge bg-warning">Ожидает ответа</span></small>
+                    </div>
+                `,
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true,
+                position: 'center',
+                backdrop: 'rgba(0,0,0,0.4)',
+                customClass: {
+                    popup: 'rounded-3 border-0 shadow-lg',
+                    icon: 'border-0'
+                }
+            });
+            
+            // 3.2 Закрываем модальное окно приглашений
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addParticipantModal'));
+            if (modal) {
+                modal.hide();
+                
+                // Анимация закрытия модального окна
+                const modalElement = document.getElementById('addParticipantModal');
+                if (modalElement) {
+                    modalElement.style.transition = 'opacity 0.3s ease';
+                    modalElement.style.opacity = '0';
+                }
+            }
+            
+            // 3.3 Немедленно обновляем интерфейс
+            if (data.participant) {
+                // Анимация добавления участника
+                animateNewParticipant(data.participant);
+                
+                // Обновляем счетчик
+                const currentCount = parseInt(document.getElementById('participantsCount')?.textContent) || 0;
+                updateParticipantsCounter(currentCount + 1);
+                
+                // Добавляем участника в список без полной перезагрузки
+                addParticipantToList(data.participant);
+            }
+            
+            // 3.4 Показываем тостовое уведомление в углу
+            setTimeout(() => {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer);
+                        toast.addEventListener('mouseleave', Swal.resumeTimer);
+                    },
+                    customClass: {
+                        popup: 'rounded-3'
+                    }
+                });
+                
+                Toast.fire({
+                    icon: 'success',
+                    title: `${username} приглашен!`
+                });
+            }, 500);
+            
+            // 3.5 Полное обновление списка через 3 секунды
+            setTimeout(() => {
+                console.log('Полное обновление списка участников...');
+                loadParticipantsData();
+            }, 3000);
+            
+        } else {
+            // ОШИБКА: Не удалось отправить
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Не удалось отправить приглашение',
+                html: `
+                    <div class="text-start">
+                        <p><strong>Причина:</strong> ${data.error || 'Неизвестная ошибка'}</p>
+                        <div class="alert alert-warning mt-3">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <small>Возможно, пользователь уже приглашен или не является вашим другом</small>
+                        </div>
+                    </div>
+                `,
+                confirmButtonText: '<i class="bi bi-check me-1"></i> Понятно',
+                confirmButtonColor: '#6c757d',
+                customClass: {
+                    popup: 'rounded-3 border-0',
+                    confirmButton: 'btn btn-secondary px-4'
+                },
+                buttonsStyling: false
+            });
+            
+            // Если ошибка "уже приглашен", обновляем список
+            if (data.error && data.error.includes('уже приглашен')) {
+                setTimeout(() => {
+                    loadParticipantsData();
+                }, 1000);
+            }
+        }
+        
+    } catch (error) {
+        // ОШИБКА СЕТИ
+        console.error('Ошибка сети:', error);
+        Swal.close();
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Ошибка соединения',
+            html: `
+                <div class="text-start">
+                    <p>Не удалось подключиться к серверу. Проверьте:</p>
+                    <ul class="small">
+                        <li>Подключение к интернету</li>
+                        <li>Доступность сервера</li>
+                        <li>Блокировку браузером</li>
+                    </ul>
+                </div>
+            `,
+            confirmButtonText: '<i class="bi bi-arrow-clockwise me-1"></i> Попробовать снова',
+            showCancelButton: true,
+            cancelButtonText: 'Отмена',
+            confirmButtonColor: '#0d6efd',
+            customClass: {
+                popup: 'rounded-3 border-0',
+                confirmButton: 'btn btn-primary px-4',
+                cancelButton: 'btn btn-outline-secondary px-4'
+            },
+            buttonsStyling: false,
+            preConfirm: () => {
+                // Повторная попытка
+                return inviteFriend(userId, username);
+            }
+        });
+    }
+}
+
+// Функция анимации добавления нового участника
+function animateNewParticipant(participantData) {
+    const container = document.getElementById('participantsContainer');
+    if (!container) return;
+    
+    // Проверяем, не отображается ли уже "нет участников"
+    const noParticipantsMsg = container.querySelector('.alert-info');
+    if (noParticipantsMsg) {
+        // Убираем сообщение "нет участников" с анимацией
+        noParticipantsMsg.style.transition = 'opacity 0.3s ease';
+        noParticipantsMsg.style.opacity = '0';
+        setTimeout(() => {
+            if (noParticipantsMsg.parentNode) {
+                noParticipantsMsg.remove();
+            }
+        }, 300);
+    }
+    
+    // Создаем элемент участника
+    const participantElement = document.createElement('div');
+    participantElement.className = 'card mb-3 border-start border-warning border-3 participant-added';
+    participantElement.style.opacity = '0';
+    participantElement.style.transform = 'translateX(-50px)';
+    
+    participantElement.innerHTML = `
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <div class="avatar bg-primary text-white rounded-circle me-3"
+                         style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                        <span class="fs-5">${participantData.username.charAt(0).toUpperCase()}</span>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center mb-1">
+                            <h6 class="mb-0 me-2">${participantData.username}</h6>
+                            ${participantData.role && participantData.role !== 'Участник' ? 
+                                `<span class="badge bg-info ms-2">${participantData.role}</span>` : ''}
+                            <span class="badge bg-warning ms-2">Ожидает ответа</span>
+                        </div>
+                        <div class="small text-muted">
+                            <i class="bi bi-person-plus me-1"></i>Пригласил: ${participantData.invited_by || 'Вы'}
+                            <br><i class="bi bi-clock me-1"></i>Только что
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <button class="btn btn-sm btn-outline-danger cancel-invite-btn" 
+                            data-participant-id="${participantData.id}"
+                            data-username="${participantData.username}"
+                            onclick="cancelInvitation(${participantData.id}, '${participantData.username.replace(/'/g, "\\'")}')">
+                        <i class="bi bi-x-circle me-1"></i> Отменить
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Добавляем в начало контейнера
+    const participantsList = container.querySelector('#participantsList') || container;
+    if (participantsList.firstChild) {
+        participantsList.insertBefore(participantElement, participantsList.firstChild);
+    } else {
+        participantsList.appendChild(participantElement);
+    }
+    
+    // Анимация появления
+    setTimeout(() => {
+        participantElement.style.transition = 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        participantElement.style.opacity = '1';
+        participantElement.style.transform = 'translateX(0)';
+        
+        // Эффект пульсации
+        setTimeout(() => {
+            participantElement.style.boxShadow = '0 0 0 0 rgba(255, 193, 7, 0.7)';
+            participantElement.animate([
+                { boxShadow: '0 0 0 0 rgba(255, 193, 7, 0.7)' },
+                { boxShadow: '0 0 0 10px rgba(255, 193, 7, 0)' }
+            ], {
+                duration: 1000,
+                iterations: 2
+            });
+        }, 300);
+    }, 10);
+}
+
+// Функция добавления участника в список (альтернативная)
+function addParticipantToList(participantData) {
+    const participantsList = document.getElementById('participantsList');
+    if (!participantsList) return;
+    
+    // Если список пустой, меняем структуру
+    if (participantsList.innerHTML.includes('Участники будут отображаться здесь')) {
+        participantsList.innerHTML = '';
+        const row = document.createElement('div');
+        row.className = 'row';
+        participantsList.appendChild(row);
+    }
+}
+
+// ============================================
+// СИСТЕМА УВЕДОМЛЕНИЙ (заглушки)
+// ============================================
+
+function showNotificationModal() {
+    showNotification('info', 'Функция уведомлений будет реализована позже');
+}
+
+function markAllNotificationsAsRead() {
+    showNotification('success', 'Все уведомления отмечены как прочитанные');
+}
+
+function clearAllNotifications() {
+    Swal.fire({
+        title: 'Очистить все уведомления?',
+        text: 'Это действие нельзя отменить',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Очистить',
+        cancelButtonText: 'Отмена'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            showNotification('success', 'Все уведомления очищены');
+        }
+    });
+}
+
+
+// Функция для анимации добавления участника
+function animateNewParticipant(participantData) {
+    const container = document.getElementById('participantsContainer');
+    if (!container) return;
+    
+    // Создаем временный элемент для анимации
+    const tempElement = document.createElement('div');
+    tempElement.className = 'alert alert-success alert-dismissible fade show';
+    tempElement.innerHTML = `
+        <i class="bi bi-check-circle-fill me-2"></i>
+        <strong>${participantData.username}</strong> добавлен как участник!
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    tempElement.style.opacity = '0';
+    tempElement.style.transform = 'translateY(-20px)';
+    
+    // Добавляем в начало
+    container.insertBefore(tempElement, container.firstChild);
+    
+    // Анимация появления
+    setTimeout(() => {
+        tempElement.style.transition = 'all 0.3s ease';
+        tempElement.style.opacity = '1';
+        tempElement.style.transform = 'translateY(0)';
+    }, 10);
+    
+    // Убираем через 3 секунды
+    setTimeout(() => {
+        tempElement.style.opacity = '0';
+        tempElement.style.transform = 'translateY(-20px)';
+        setTimeout(() => {
+            if (tempElement.parentNode) {
+                tempElement.remove();
+            }
+        }, 300);
+    }, 3000);
 }
 </script>
-
 
 <style>
     #eventMap {
@@ -1834,5 +2736,57 @@ function showAddParticipantModal() {
     .tab-pane .card {
         border-radius: 10px;
     }
+    
+    /* Анимация для новых участников */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+.participant-added {
+    animation: slideIn 0.3s ease forwards;
+}
+
+.participant-removed {
+    animation: slideOut 0.3s ease forwards;
+}
+
+/* Анимация для кнопок */
+.btn-primary {
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
+}
+
+/* Пульсация для новых уведомлений */
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(13, 110, 253, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); }
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
 </style>
 {% endblock %}

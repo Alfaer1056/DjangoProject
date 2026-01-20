@@ -67,6 +67,11 @@ class EventParticipant(models.Model):
         ('confirmed', 'Подтвержден'),  # старое поле is_confirmed
     ]
 
+    @property
+    def status_display(self):
+        """Отображаемое название статуса"""
+        return dict(self.STATUS_CHOICES).get(self.status, 'Неизвестно')
+
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='participants')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='participating_events')
     invited_by = models.ForeignKey(User, related_name='invited_participants', null=True, blank=True,
@@ -180,3 +185,37 @@ class FriendRequest(models.Model):
     class Meta:
         unique_together = ('from_user', 'to_user')
         ordering = ['-created_at']
+
+
+# В models.py добавьте:
+class Notification(models.Model):
+    """Уведомление для пользователя"""
+    TYPE_CHOICES = [
+        ('event_invitation', 'Приглашение в мероприятие'),
+        ('friend_request', 'Заявка в друзья'),
+        ('event_update', 'Изменение мероприятия'),
+        ('expense_added', 'Новый расход'),
+        ('task_assigned', 'Назначена задача'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    notification_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    related_event = models.ForeignKey(Event, on_delete=models.CASCADE, null=True, blank=True)
+    related_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                     related_name='sent_notifications')
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Уведомление'
+        verbose_name_plural = 'Уведомления'
+
+    def __str__(self):
+        return f"{self.user.username}: {self.title}"
+
+    def mark_as_read(self):
+        self.is_read = True
+        self.save()

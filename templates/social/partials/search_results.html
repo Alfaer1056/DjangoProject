@@ -14,8 +14,13 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center">
                     <!-- Аватар пользователя -->
-                    <div class="avatar {% if user.is_friend %}bg-success{% elif user.has_sent_request %}bg-warning{% elif user.has_received_request %}bg-info{% else %}bg-secondary{% endif %}
-                                text-white rounded-circle me-3"
+                    <div class="avatar 
+                        {% if user.is_friend %}bg-success
+                        {% elif user.has_accepted_request %}bg-info
+                        {% elif user.has_sent_request %}bg-warning
+                        {% elif user.has_received_request %}bg-primary
+                        {% else %}bg-secondary{% endif %}
+                        text-white rounded-circle me-3"
                          style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
                         <span class="fs-5">{{ user.username|first|upper }}</span>
                     </div>
@@ -28,14 +33,27 @@
                                 <span class="badge bg-success ms-2">
                                     <i class="bi bi-check-circle me-1"></i>Друг
                                 </span>
+                            {% elif user.has_accepted_request %}
+                                <span class="badge bg-info ms-2">
+                                    <i class="bi bi-check-circle me-1"></i>Заявка принята
+                                </span>
                             {% elif user.has_sent_request %}
                                 <span class="badge bg-warning ms-2">
                                     <i class="bi bi-clock me-1"></i>Заявка отправлена
                                 </span>
                             {% elif user.has_received_request %}
-                                <span class="badge bg-info ms-2">
+                                <span class="badge bg-primary ms-2">
                                     <i class="bi bi-envelope me-1"></i>Вам отправил заявку
                                 </span>
+                            {% endif %}
+                            
+                            <!-- Отладочная информация (только для разработки) -->
+                            {% if debug_mode %}
+                            <small class="text-muted d-block mt-1">
+                                Статус: {{ user.status|default:"unknown" }}
+                                {% if user.sent_request_accepted %} (Принята){% endif %}
+                                {% if user.received_request_accepted %} (Получена принятая){% endif %}
+                            </small>
                             {% endif %}
                         </h6>
                         <small class="text-muted d-block">
@@ -62,6 +80,32 @@
                                     data-username="{{ user.username }}">
                                 <i class="bi bi-person-dash me-1"></i> Удалить
                             </button>
+                        </div>
+
+                    {% elif user.has_accepted_request %}
+                        <!-- Заявка уже принята (должны быть друзьями, но что-то пошло не так) -->
+                        <div class="d-flex flex-column align-items-end">
+                            <span class="badge bg-info mb-2">
+                                <i class="bi bi-check-circle me-1"></i> Заявка принята
+                            </span>
+                            <div class="btn-group">
+                                {% if user.sent_request_id %}
+                                <form method="post" action="{% url 'accept_friend_request' user.sent_request_id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="bi bi-check-lg me-1"></i> Сделать друзьями
+                                    </button>
+                                </form>
+                                {% elif user.received_request_id %}
+                                <form method="post" action="{% url 'accept_friend_request' user.received_request_id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="bi bi-check-lg me-1"></i> Сделать друзьями
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted mt-1">Нажмите чтобы восстановить дружбу</small>
                         </div>
 
                     {% elif user.has_sent_request %}
@@ -103,12 +147,27 @@
                         <!-- Можно добавить в друзья -->
                         <button class="btn btn-sm btn-primary add-friend-btn"
                                 data-user-id="{{ user.id }}"
-                                data-username="{{ user.username }}">
+                                data-username="{{ user.username }}"
+                                {% if user.is_friend or user.has_sent_request or user.has_received_request or user.has_accepted_request %}
+                                disabled
+                                {% endif %}>
                             <i class="bi bi-person-plus me-1"></i> Добавить в друзья
                         </button>
                     {% endif %}
                 </div>
             </div>
+            
+            <!-- Дополнительная информация о заявке -->
+            {% if user.sent_request_accepted or user.received_request_accepted %}
+            <div class="mt-2 small text-muted">
+                <i class="bi bi-info-circle me-1"></i>
+                {% if user.sent_request_accepted %}
+                    Вы уже приняли заявку от этого пользователя
+                {% elif user.received_request_accepted %}
+                    Пользователь уже принял вашу заявку
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
         {% endfor %}
     </div>
@@ -148,92 +207,331 @@ function getCSRFToken() {
            document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
 }
 
-// Обработчик для кнопок "Добавить в друзья"
+// Обработчик для кнопок "Добавить в друзья" - УЛУЧШЕННАЯ ВЕРСИЯ
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.add-friend-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+    initAddFriendButtons();
+});
+
+function initAddFriendButtons() {
+    document.querySelectorAll('.add-friend-btn:not([disabled])').forEach(btn => {
+        // Удаляем старые обработчики
+        btn.replaceWith(btn.cloneNode(true));
+    });
+    
+    // Назначаем новые обработчики
+    document.querySelectorAll('.add-friend-btn:not([disabled])').forEach(btn => {
+        btn.addEventListener('click', async function() {
             const userId = this.getAttribute('data-user-id');
             const username = this.getAttribute('data-username');
             const button = this;
-
-            // Меняем кнопку на "ожидание"
+            
+            console.log(`Клик по кнопке для пользователя: ${username} (ID: ${userId})`);
+            
+            // Проверяем, не активна ли уже кнопка
+            if (button.classList.contains('processing') || button.disabled) {
+                console.log('Кнопка уже обрабатывается или отключена');
+                return;
+            }
+            
+            // Добавляем класс processing
+            button.classList.add('processing');
+            
+            // Сохраняем оригинальное состояние кнопки
             const originalHTML = button.innerHTML;
-            button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            const originalClasses = button.className;
+            
+            // Показываем состояние загрузки
+            button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Отправка...';
             button.disabled = true;
-
-            // Отправляем запрос
-            fetch(`/friends/request/${userId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': getCSRFToken(),
-                    'X-Requested-With': 'XMLHttpRequest'
+            
+            try {
+                // Получаем CSRF токен
+                const csrfToken = getCSRFToken();
+                if (!csrfToken) {
+                    throw new Error('CSRF токен не найден');
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
+                
+                // Отправляем запрос
+                const response = await fetch(`/friends/request/${userId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `csrfmiddlewaretoken=${encodeURIComponent(csrfToken)}`
+                });
+                
+                // Проверяем ответ
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Ответ от сервера:', data);
+                
                 if (data.success) {
-                    // Обновляем кнопку
-                    button.innerHTML = '<i class="bi bi-clock me-1"></i> Заявка отправлена';
-                    button.classList.remove('btn-primary');
-                    button.classList.add('btn-warning', 'disabled');
-                    button.disabled = true;
-
-                    // Обновляем бейдж
-                    const badge = button.closest('.list-group-item').querySelector('.badge');
-                    if (badge) {
-                        badge.className = 'badge bg-warning ms-2';
-                        badge.innerHTML = '<i class="bi bi-clock me-1"></i>Заявка отправлена';
-                    }
-
-                    // Показываем уведомление
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Готово!',
-                            text: data.message,
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 3000
-                        });
-                    } else {
-                        alert(data.message);
-                    }
+                    // УСПЕХ: Заявка отправлена или уже друзья
+                    await handleRequestSuccess(button, data, username);
                 } else {
-                    // Восстанавливаем кнопку
-                    button.innerHTML = originalHTML;
-                    button.disabled = false;
-
-                    // Показываем ошибку
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Ошибка',
-                            text: data.error || 'Не удалось отправить заявку',
-                        });
-                    } else {
-                        alert(data.error || 'Не удалось отправить заявку');
-                    }
+                    // ОШИБКА
+                    await handleRequestError(button, data, username, originalHTML, originalClasses);
                 }
-            })
-            .catch(error => {
-                console.error('Ошибка:', error);
+                
+            } catch (error) {
+                console.error('Ошибка при отправке заявки:', error);
+                
+                // Восстанавливаем кнопку
                 button.innerHTML = originalHTML;
+                button.className = originalClasses;
                 button.disabled = false;
-
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Ошибка',
-                        text: 'Не удалось отправить заявку',
-                    });
-                } else {
-                    alert('Не удалось отправить заявку');
-                }
-            });
+                button.classList.remove('processing');
+                
+                // Показываем ошибку
+                showNotification('error', 'Ошибка соединения с сервером');
+                
+            } finally {
+                // Убираем класс processing
+                setTimeout(() => {
+                    button.classList.remove('processing');
+                }, 1000);
+            }
         });
     });
-});
+}
+
+// Обработка успешной отправки заявки
+async function handleRequestSuccess(button, data, username) {
+    // Меняем кнопку
+    button.innerHTML = '<i class="bi bi-clock me-1"></i> Заявка отправлена';
+    button.className = button.className.replace('btn-primary', 'btn-warning');
+    button.classList.add('disabled');
+    button.disabled = true;
+    
+    // Обновляем бейдж рядом с именем пользователя
+    updateUserBadge(button, 'sent', username);
+    
+    // Показываем уведомление
+    showNotification('success', data.message || `Заявка отправлена ${username}`);
+    
+    // Если есть request_id, сохраняем его в data-атрибут
+    if (data.request_id) {
+        button.setAttribute('data-request-id', data.request_id);
+    }
+    
+    // Добавляем кнопку отмены
+    addCancelButtonIfNeeded(button, data.request_id);
+}
+
+// Обработка ошибки при отправке заявки
+async function handleRequestError(button, data, username, originalHTML, originalClasses) {
+    if (data.error) {
+        if (data.error.includes('уже отправлена') || data.error.includes('Заявка уже отправлена')) {
+            // Заявка уже была отправлена ранее
+            button.innerHTML = '<i class="bi bi-clock me-1"></i> Заявка отправлена';
+            button.className = button.className.replace('btn-primary', 'btn-warning');
+            button.classList.add('disabled');
+            button.disabled = true;
+            
+            updateUserBadge(button, 'sent', username);
+            showNotification('info', data.error);
+            
+        } else if (data.error.includes('уже друзья') || data.error.includes('Вы уже друзья')) {
+            // Уже друзья
+            button.innerHTML = '<i class="bi bi-check-circle me-1"></i> Уже друзья';
+            button.className = button.className.replace('btn-primary', 'btn-success');
+            button.classList.add('disabled');
+            button.disabled = true;
+            
+            updateUserBadge(button, 'friend', username);
+            showNotification('info', data.error);
+            
+        } else if (data.error.includes('уже отправил вам заявку')) {
+            // Вам уже отправили заявку
+            button.innerHTML = '<i class="bi bi-envelope me-1"></i> Вам отправили заявку';
+            button.className = button.className.replace('btn-primary', 'btn-primary');
+            button.classList.add('disabled');
+            button.disabled = true;
+            
+            updateUserBadge(button, 'received', username);
+            showNotification('info', data.error);
+            
+        } else {
+            // Другие ошибки
+            button.innerHTML = originalHTML;
+            button.className = originalClasses;
+            button.disabled = false;
+            showNotification('error', data.error);
+        }
+    } else {
+        // Неизвестная ошибка
+        button.innerHTML = originalHTML;
+        button.className = originalClasses;
+        button.disabled = false;
+        showNotification('error', 'Неизвестная ошибка');
+    }
+}
+
+// Обновление бейджа рядом с именем пользователя
+function updateUserBadge(button, status, username) {
+    const listItem = button.closest('.list-group-item');
+    if (!listItem) return;
+    
+    const usernameElement = listItem.querySelector('h6');
+    if (!usernameElement) return;
+    
+    // Удаляем старый бейдж если есть
+    const oldBadge = usernameElement.querySelector('.badge');
+    if (oldBadge) {
+        oldBadge.remove();
+    }
+    
+    // Создаем новый бейдж в зависимости от статуса
+    const badge = document.createElement('span');
+    badge.className = 'badge ms-2';
+    
+    switch(status) {
+        case 'sent':
+            badge.classList.add('bg-warning');
+            badge.innerHTML = '<i class="bi bi-clock me-1"></i>Заявка отправлена';
+            break;
+        case 'friend':
+            badge.classList.add('bg-success');
+            badge.innerHTML = '<i class="bi bi-check-circle me-1"></i>Друг';
+            break;
+        case 'received':
+            badge.classList.add('bg-primary');
+            badge.innerHTML = '<i class="bi bi-envelope me-1"></i>Вам отправил заявку';
+            break;
+        case 'accepted':
+            badge.classList.add('bg-info');
+            badge.innerHTML = '<i class="bi bi-check-circle me-1"></i>Заявка принята';
+            break;
+    }
+    
+    usernameElement.appendChild(badge);
+}
+
+// Добавление кнопки отмены заявки
+function addCancelButtonIfNeeded(button, requestId) {
+    if (!requestId) return;
+    
+    const listItem = button.closest('.list-group-item');
+    if (!listItem) return;
+    
+    const actionsContainer = listItem.querySelector('.actions');
+    if (!actionsContainer) return;
+    
+    // Проверяем, нет ли уже кнопки отмены
+    if (actionsContainer.querySelector('.cancel-request-btn')) return;
+    
+    // Создаем кнопку отмены
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn btn-sm btn-outline-secondary cancel-request-btn mt-2';
+    cancelBtn.innerHTML = '<i class="bi bi-x-circle me-1"></i> Отменить заявку';
+    cancelBtn.setAttribute('data-request-id', requestId);
+    
+    cancelBtn.addEventListener('click', function() {
+        cancelFriendRequest(requestId, button, cancelBtn);
+    });
+    
+    actionsContainer.appendChild(cancelBtn);
+}
+
+// Функция отмены заявки
+async function cancelFriendRequest(requestId, originalButton, cancelButton) {
+    if (!confirm('Отменить заявку в друзья?')) return;
+    
+    cancelButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+    cancelButton.disabled = true;
+    
+    try {
+        const response = await fetch(`/friends/reject/${requestId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        if (response.ok) {
+            // Восстанавливаем оригинальную кнопку
+            originalButton.innerHTML = '<i class="bi bi-person-plus me-1"></i> Добавить в друзья';
+            originalButton.className = originalButton.className.replace('btn-warning', 'btn-primary');
+            originalButton.classList.remove('disabled');
+            originalButton.disabled = false;
+            
+            // Удаляем бейдж
+            updateUserBadge(originalButton, 'none', '');
+            
+            // Удаляем кнопку отмены
+            cancelButton.remove();
+            
+            showNotification('success', 'Заявка отменена');
+        }
+    } catch (error) {
+        console.error('Ошибка отмены заявки:', error);
+        cancelButton.innerHTML = '<i class="bi bi-x-circle me-1"></i> Отменить заявку';
+        cancelButton.disabled = false;
+        showNotification('error', 'Ошибка отмены заявки');
+    }
+}
+
+// Функция для показа уведомлений
+function showNotification(type, message) {
+    if (typeof Swal !== 'undefined') {
+        const sweetType = type === 'danger' ? 'error' : type;
+        
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+        });
+        
+        Toast.fire({
+            icon: sweetType,
+            title: message
+        });
+    } else {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 3000);
+    }
+}
+
+// Автоматическая инициализация при AJAX загрузке
+if (typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.addedNodes.length) {
+                setTimeout(initAddFriendButtons, 100);
+            }
+        });
+    });
+    
+    const searchResults = document.getElementById('searchResults');
+    if (searchResults) {
+        observer.observe(searchResults, { childList: true, subtree: true });
+    }
+}
 </script>
 
 <style>
@@ -247,9 +545,14 @@ document.addEventListener('DOMContentLoaded', function() {
     font-weight: bold;
 }
 
-.add-friend-btn:hover {
+.add-friend-btn:hover:not([disabled]) {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.add-friend-btn[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .list-group-item {
@@ -263,5 +566,26 @@ document.addEventListener('DOMContentLoaded', function() {
 .suggestions {
     max-width: 400px;
     margin: 0 auto;
+}
+
+/* Стили для разных статусов аватарок */
+.avatar.bg-success {
+    background-color: #198754 !important;
+}
+
+.avatar.bg-info {
+    background-color: #0dcaf0 !important;
+}
+
+.avatar.bg-warning {
+    background-color: #ffc107 !important;
+}
+
+.avatar.bg-primary {
+    background-color: #0d6efd !important;
+}
+
+.avatar.bg-secondary {
+    background-color: #6c757d !important;
 }
 </style>

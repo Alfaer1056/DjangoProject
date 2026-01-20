@@ -38,6 +38,10 @@
     <a class="nav-link" href="{% url 'friends' %}">
         <i class="bi bi-people me-2"></i> Друзья
     </a>
+                <a class="nav-link" href="{% url 'notifications' %}">
+        <i class="bi bi-bell me-2"></i> Уведомления
+        <span class="badge bg-danger ms-1" id="globalUnreadCount">0</span>
+    </a>
     <a class="nav-link" href="{% url 'map' %}">
         <i class="bi bi-map me-2"></i> Карта
     </a>
@@ -53,10 +57,6 @@
                 <h1 class="h3 fw-bold mb-0">
                     <i class="bi bi-person-circle me-2"></i>Профиль пользователя
                 </h1>
-                <button type="button" class="btn btn-outline-secondary" id="notificationsBtn">
-                    <i class="bi bi-bell"></i>
-                    <span class="badge bg-danger rounded-pill">3</span>
-                </button>
             </div>
             
             <!-- Информация профиля -->

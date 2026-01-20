@@ -105,6 +105,8 @@
     <!-- CSRF токен для AJAX запросов -->
     {% csrf_token %}
     
+    
+    
     <!-- Глобальные функции JavaScript -->
     <script>
         // Глобальная функция для получения CSRF токена
@@ -141,6 +143,40 @@
                 alert('Ошибка: Bootstrap не загружен. Проверьте интернет-соединение.');
             }
         });
+        
+        // Проверка новых уведомлений каждые 30 секунд
+setInterval(async () => {
+    try {
+        const response = await fetch('/notifications/api/');
+        const data = await response.json();
+        
+        if (data.success) {
+            // Обновляем счетчик
+            const counter = document.getElementById('globalUnreadCount');
+            if (counter) {
+                const currentCount = parseInt(counter.textContent) || 0;
+                const newCount = data.unread_count || 0;
+                
+                if (newCount > currentCount) {
+                    // Новые уведомления!
+                    counter.textContent = newCount;
+                    counter.classList.add('pulse-animation');
+                    
+                    // Показываем всплывающее уведомление
+                    if (newCount > currentCount) {
+                        showNewNotificationToast();
+                    }
+                } else if (newCount === 0) {
+                    counter.textContent = '0';
+                    counter.classList.remove('pulse-animation');
+                }
+            }
+        }
+    } catch (error) {
+        console.log('Ошибка проверки уведомлений:', error);
+    }
+}, 30000); // 30 секунд
+        
     </script>
 </body>
 </html>

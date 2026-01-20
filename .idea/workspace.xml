@@ -4,40 +4,27 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="77922bee-43d5-4990-9901-4279262ce905" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/DjangoProject.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/static/js/event_detail.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/base.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/calendar.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/create_event.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/event_detail.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/friends.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/home.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/main.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/map.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/my_events.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/profile.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/settings.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/social/partials/event_info.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/social/partials/event_money.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/social/partials/event_participants.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/social/partials/event_tasks.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/social/partials/modal_add_expense.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/social/partials/modal_add_participant.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/social/partials/modal_add_task.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/social/partials/modal_notification.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/social/partials/search_results.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/social/vk_login.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/trips/forms.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/trips/templatetags/__init__..py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/trips/templatetags/custom_filters.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/trips/urls_api.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/trips/urls_old.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/trips/views_api.py" afterDir="false" />
+    <list default="true" id="77922bee-43d5-4990-9901-4279262ce905" name="Changes" comment="yo">
+      <change afterPath="$PROJECT_DIR$/templates/notifications.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/templates/social/partials/event_card.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DjangoProject/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/DjangoProject/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/db.sqlite3" beforeDir="false" afterPath="$PROJECT_DIR$/db.sqlite3" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/base.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/calendar.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/calendar.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/create_event.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/create_event.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/event_detail.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/event_detail.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/friends.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/friends.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/main.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/main.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/map.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/map.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/my_events.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/my_events.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/profile.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/profile.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/settings.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/settings.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/social/partials/event_participants.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/social/partials/event_participants.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/social/partials/search_results.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/social/partials/search_results.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trips/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/trips/forms.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trips/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/trips/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trips/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/trips/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -59,6 +46,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "Alfaer1056"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/Alfaer1056/DjangoProject.git",
+    "accountId": "bfe0e035-19c7-4c8f-80e5-128ecc6bbc2b"
+  }
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 6
 }</component>
@@ -171,12 +170,36 @@
       <workItem from="1767804085960" duration="15163000" />
       <workItem from="1768661462963" duration="12262000" />
       <workItem from="1768752924255" duration="10624000" />
-      <workItem from="1768834495191" duration="8673000" />
+      <workItem from="1768834495191" duration="29695000" />
     </task>
+    <task id="LOCAL-00001" summary="yo">
+      <option name="closed" value="true" />
+      <created>1768843577650</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1768843577650</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="yo" />
+    <option name="LAST_COMMIT_MESSAGE" value="yo" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/DjangoProject$manage.coverage" NAME="manage Coverage Results" MODIFIED="1767701868191" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

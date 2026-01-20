@@ -1,0 +1,106 @@
+<!-- templates/social/partials/event_card.html -->
+<div class="card h-100 border-0 shadow-sm">
+    <div class="card-header bg-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                {% if is_organizer %}
+                <span class="badge bg-primary">Организатор</span>
+                {% else %}
+                <span class="badge bg-success">Участник</span>
+                {% endif %}
+                <span class="badge bg-secondary ms-1">{{ event.get_event_type_display }}</span>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
+                        data-bs-toggle="dropdown">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="{% url 'event_detail' event.id %}">
+                            <i class="bi bi-eye me-2"></i>Открыть
+                        </a>
+                    </li>
+                    {% if is_organizer %}
+                    <li>
+                        <a class="dropdown-item text-danger" href="#" 
+                           onclick="confirmDelete({{ event.id }}, '{{ event.title|escapejs }}')">
+                            <i class="bi bi-trash me-2"></i>Удалить
+                        </a>
+                    </li>
+                    {% else %}
+                    <li>
+                        <form method="post" action="{% url 'leave_event' event.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="dropdown-item text-danger" 
+                                    onclick="return confirm('Покинуть мероприятие?')">
+                                <i class="bi bi-box-arrow-right me-2"></i>Покинуть
+                            </button>
+                        </form>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card-body">
+        <h5 class="card-title">{{ event.title }}</h5>
+        <p class="card-text text-muted small">
+            {{ event.description|truncatechars:100|default:"Описание отсутствует" }}
+        </p>
+        
+        <div class="mt-3">
+            <div class="d-flex align-items-center mb-2">
+                <i class="bi bi-calendar text-primary me-2"></i>
+                <small>{{ event.start_datetime|date:"d.m.Y H:i" }}</small>
+            </div>
+            
+            <div class="d-flex align-items-center">
+                <i class="bi bi-geo-alt text-primary me-2"></i>
+                <small>{{ event.get_location_display|truncatechars:30 }}</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card-footer bg-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <i class="bi bi-people text-muted"></i>
+                <small class="text-muted ms-1">
+                    {{ event.participants.count }} участник{{ event.participants.count|pluralize:"а,ов" }}
+                </small>
+            </div>
+            <a href="{% url 'event_detail' event.id %}" class="btn btn-sm btn-outline-primary">
+                Открыть
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(eventId, eventTitle) {
+    if (confirm(`Удалить мероприятие "${eventTitle}"?`)) {
+        fetch(`/events/${eventId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Ошибка удаления: ' + data.message);
+            }
+        });
+    }
+}
+
+function getCSRFToken() {
+    return document.querySelector('[name="csrfmiddlewaretoken"]')?.value ||
+           document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+}
+</script>

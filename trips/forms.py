@@ -1,6 +1,6 @@
 # trips/forms.py
 from django import forms
-from .models import Event
+from .models import Event, Friendship
 
 
 class EventForm(forms.ModelForm):
@@ -81,3 +81,29 @@ class EventInviteForm(forms.ModelForm):
                 'placeholder': 'Роль в поездке (опционально)'
             })
         }
+
+
+class InviteFriendForm(forms.Form):
+    friend = forms.ModelChoiceField(
+        queryset=User.objects.none(),  # Будет заполнен в __init__
+        label="Друг",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    role = forms.CharField(
+        max_length=50,
+        required=False,
+        label="Роль (опционально)",
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Участник'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        if user:
+            # Получаем только друзей пользователя
+            from .models import Friendship
+            friend_ids = Friendship.objects.filter(
+                user=user, confirmed=True
+            ).values_list('friend_id', flat=True)
+            self.fields['friend'].queryset = User.objects.filter(id__in=friend_ids)
